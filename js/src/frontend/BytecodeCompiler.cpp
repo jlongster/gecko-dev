@@ -414,8 +414,15 @@ frontend::CompileScript(ExclusiveContext *cx, LifoAlloc *alloc, HandleObject sco
      * header) override any source map urls passed as comment pragmas.
      */
     if (options.sourceMapURL()) {
-        if (!ss->setSourceMapURL(cx, options.sourceMapURL()))
+        // Warn about the replacement, but use the new one.
+        if (ss->hasSourceMapURL()) {
+            parser.report(ParseWarning, false, nullptr, JSMSG_ALREADY_HAS_PRAGMA,
+                          ss->filename(), "//# sourceMappingURL");
+        }
+
+        if (!ss->setSourceMapURL(cx, options.sourceMapURL())) {
             return nullptr;
+        }
     }
 
     /*
