@@ -1610,72 +1610,6 @@ ThreadClient.prototype = {
   }),
 
   /**
-   * Request to set a breakpoint in the specified location.
-   *
-   * @param object aLocation
-   *        The source location object where the breakpoint will be set.
-   * @param function aOnResponse
-   *        Called with the thread's response.
-   */
-  setBreakpoint: function ({ url, line, column, condition },
-                           aOnResponse = noop) {
-    // A helper function that sets the breakpoint.
-    let doSetBreakpoint = (aCallback) => {
-      const location = {
-        url: url,
-        line: line,
-        column: column
-      };
-
-      let packet = {
-        to: this._actor,
-        type: "setBreakpoint",
-        location: location,
-        condition: condition
-      };
-      this.client.request(packet, (aResponse) => {
-        // Ignoring errors, since the user may be setting a breakpoint in a
-        // dead script that will reappear on a page reload.
-        let bpClient;
-        if (aResponse.actor) {
-          let root = this.client.mainRoot;
-          bpClient = new BreakpointClient(
-            this.client,
-            aResponse.actor,
-            location,
-            root.traits.conditionalBreakpoints ? condition : undefined
-          );
-        }
-        aOnResponse(aResponse, bpClient);
-        if (aCallback) {
-          aCallback();
-        }
-      });
-    };
-
-    // If the debuggee is paused, just set the breakpoint.
-    if (this.paused) {
-      doSetBreakpoint();
-      return;
-    }
-    // Otherwise, force a pause in order to set the breakpoint.
-    this.interrupt((aResponse) => {
-      if (aResponse.error) {
-        // Can't set the breakpoint if pausing failed.
-        aOnResponse(aResponse);
-        return;
-      }
-
-      const { type, why } = aResponse;
-      const cleanUp = type == "paused" && why.type == "interrupted"
-        ? () => this.resume()
-        : noop;
-
-      doSetBreakpoint(cleanUp);
-    });
-  },
-
-  /**
    * Release multiple thread-lifetime object actors. If any pause-lifetime
    * actors are included in the request, a |notReleasable| error will return,
    * but all the thread-lifetime ones will have been released.
@@ -2389,6 +2323,81 @@ SourceClient.prototype = {
         contentType: contentType
       });
     });
+  },
+
+  /**
+   * Request to set a breakpoint in the specified location.
+   *
+   * @param object aLocation
+   *        The location and condition of the breakpoint in
+   *        the form of { line[, column, condition] }.
+   * @param function aOnResponse
+   *        Called with the thread's response.
+   */
+  setBreakpoint: function ({ line, column, condition }, aOnResponse = noop) {
+    // A helper function that sets the breakpoint.
+    let doSetBreakpoint = aCallback => {
+      let root = this._client.mainRoot;
+      let location = {
+        line: line,
+        column: column
+      };
+
+      let packet = {
+        to: this.actor,
+        type: "setBreakpoint",
+        location: location,
+        condition: condition
+      };
+
+      // Backwards compatibility: send the breakpoint request to the
+      // thread if the server doesn't support Debugger.Source actors
+      if (!root.traits.sourceActors) {
+        packet.to = this._activeThread.actor;
+        packet.location.url = this.url;
+      }
+
+      this._client.request(packet, aResponse => {
+        // Ignoring errors, since the user may be setting a breakpoint in a
+        // dead script that will reappear on a page reload.
+        let bpClient;
+        if (aResponse.actor) {
+          bpClient = new BreakpointClient(
+            this._client,
+            this,
+            aResponse.actor,
+            location,
+            root.traits.conditionalBreakpoints ? condition : undefined
+          );
+        }
+        aOnResponse(aResponse, bpClient);
+        if (aCallback) {
+          aCallback();
+        }
+      });
+    };
+
+    // If the debuggee is paused, just set the breakpoint.
+    if (this._activeThread.paused) {
+      doSetBreakpoint();
+      return;
+    }
+    // Otherwise, force a pause in order to set the breakpoint.
+    this._activeThread.interrupt(aResponse => {
+      if (aResponse.error) {
+        // Can't set the breakpoint if pausing failed.
+        aOnResponse(aResponse);
+        return;
+      }
+
+      const { type, why } = aResponse;
+      const cleanUp = type == "paused" && why.type == "interrupted"
+            ? () => this._activeThread.resume()
+            : noop;
+
+      doSetBreakpoint(cleanUp);
+
+    })
   }
 };
 
@@ -2405,10 +2414,12 @@ SourceClient.prototype = {
  * @param aCondition string
  *        The conditional expression of the breakpoint
  */
-function BreakpointClient(aClient, aActor, aLocation, aCondition) {
+function BreakpointClient(aClient, aSourceClient, aActor, aLocation, aCondition) {
   this._client = aClient;
   this._actor = aActor;
   this.location = aLocation;
+  this.location.actor = aSourceClient.actor;
+  this.location.url = aSourceClient.url;
   this.request = this._client.request;
 
   // The condition property should only exist if it's a truthy value
@@ -2471,7 +2482,6 @@ BreakpointClient.prototype = {
 
     if (root.traits.conditionalBreakpoints) {
       let info = {
-        url: this.location.url,
         line: this.location.line,
         column: this.location.column,
         condition: aCondition
@@ -2485,7 +2495,8 @@ BreakpointClient.prototype = {
           return;
         }
 
-        gThreadClient.setBreakpoint(info, (aResponse, aNewBreakpoint) => {
+        let source = gThreadClient.source({ actor: this.location.actor })
+        source.setBreakpoint(info, (aResponse, aNewBreakpoint) => {
           if (aResponse && aResponse.error) {
             deferred.reject(aResponse);
           } else {
@@ -2495,7 +2506,7 @@ BreakpointClient.prototype = {
       });
     } else {
       // The property shouldn't even exist if the condition is blank
-      if(aCondition === "") {
+      if (aCondition === "") {
         delete this.conditionalExpression;
       }
       else {

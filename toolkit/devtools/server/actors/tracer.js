@@ -283,8 +283,11 @@ TracerActor.prototype = {
       let sourceMappedLocation;
       if (this._requestsForTraceType.name || this._requestsForTraceType.location) {
         if (aFrame.script) {
-          sourceMappedLocation = yield this._parent.threadActor.sources.getOriginalLocation({
-            url: aFrame.script.url,
+          let sources = this._parent.threadActor.sources;
+
+          sourceMappedLocation = yield sources.getOriginalLocation({
+            source: aFrame.script.source,
+            url: aFrame.script.source.url,
             line: aFrame.script.startLine,
             // We should return the location of the start of the script, but
             // Debugger.Script does not provide complete start locations (bug
@@ -306,8 +309,15 @@ TracerActor.prototype = {
       }
 
       if (this._requestsForTraceType.location) {
-        if (sourceMappedLocation && sourceMappedLocation.url) {
-          packet.location = sourceMappedLocation;
+        if (sourceMappedLocation) {
+          // Don't copy sourceMappedLocation directly because it
+          // contains a reference to the source actor
+          packet.location = {
+            url: sourceMappedLocation.url,
+            line: sourceMappedLocation.line,
+            column: sourceMappedLocation.column,
+            name: sourceMappedLocation.name
+          };
         }
       }
 

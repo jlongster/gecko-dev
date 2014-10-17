@@ -80,7 +80,7 @@ function testEventListeners(aThreadClient) {
           lDeferred.reject(msg);
           return;
         }
-        listener.function.url = aResponse.url;
+        listener.function.url = aResponse.source.url;
         lDeferred.resolve(listener);
       });
       return lDeferred.promise;

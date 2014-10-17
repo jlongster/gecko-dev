@@ -8,6 +8,7 @@
 const TAB_URL = EXAMPLE_URL + "doc_tracing-01.html";
 
 let gTab, gPanel, gDebugger;
+let gTab, gPanel, gDebugger, gSources;
 
 function test() {
   SpecialPowers.pushPrefEnv({'set': [["devtools.debugger.tracer", true]]}, () => {
@@ -15,6 +16,7 @@ function test() {
       gTab = aTab;
       gPanel = aPanel;
       gDebugger = gPanel.panelWin;
+      gSources = gDebugger.DebuggerView.Sources;
 
       waitForSourceShown(gPanel, "code_tracing-01.js")
         .then(() => startTracing(gPanel))
@@ -23,8 +25,8 @@ function test() {
         .then(() => {
           // Switch away from the JS file so we can make sure that clicking on a
           // log will switch us back to the correct JS file.
-          aPanel.panelWin.DebuggerView.Sources.selectedValue = TAB_URL;
-          return ensureSourceIs(aPanel, TAB_URL, true);
+          gSources.selectedValue = getSourceActor(gSources, TAB_URL);
+          return ensureSourceIs(aPanel, getSourceActor(gSources, TAB_URL), true);
         })
         .then(() => {
           const finished = waitForSourceShown(gPanel, "code_tracing-01.js");
