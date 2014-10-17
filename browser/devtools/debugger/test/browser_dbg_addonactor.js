@@ -72,10 +72,9 @@ function testSources() {
   gThreadClient.getSources(aResponse => {
     // source URLs contain launch-specific temporary directory path,
     // hence the ".contains" call.
-    const matches = aResponse.sources.filter(s =>
-      s.url.contains(ADDON_MODULE_URL));
-    is(matches.length, 1,
-      "the main script of the addon is present in the source list");
+    const matches = aResponse.sources.filter(s => s.url.contains(ADDON_MODULE_URL));
+    ok(matches.length > 0,
+       "the main script of the addon is present in the source list");
     deferred.resolve();
   });
 

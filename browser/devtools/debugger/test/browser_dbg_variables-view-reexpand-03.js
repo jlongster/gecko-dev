@@ -41,7 +41,7 @@ function test() {
 }
 
 function addBreakpoint() {
-  return gBreakpoints.addBreakpoint({ url: gSources.selectedValue, line: 18 });
+  return gBreakpoints.addBreakpoint({ actor: gSources.selectedValue, line: 18 });
 }
 
 function pauseDebuggee() {

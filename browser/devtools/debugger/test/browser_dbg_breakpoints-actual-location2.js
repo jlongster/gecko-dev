@@ -38,16 +38,16 @@ function test() {
 
     Task.spawn(function*() {
       let bpClient = yield gPanel.addBreakpoint({
-        url: gSources.selectedValue,
+        actor: gSources.selectedValue,
         line: 19
       });
       yield gPanel.addBreakpoint({
-        url: gSources.selectedValue,
+        actor: gSources.selectedValue,
         line: 20
       });
 
       let movedBpClient = yield gPanel.addBreakpoint({
-        url: gSources.selectedValue,
+        actor: gSources.selectedValue,
         line: 17
       });
       testMovedLocation(movedBpClient);
@@ -55,7 +55,7 @@ function test() {
       yield resumeAndTestBreakpoint(19);
 
       yield gPanel.removeBreakpoint({
-        url: gSources.selectedValue,
+        actor: gSources.selectedValue,
         line: 19
       });
 
@@ -90,12 +90,12 @@ function test() {
   function testMovedLocation(breakpointClient) {
     ok(breakpointClient,
       "Breakpoint added, client received.");
-    is(breakpointClient.location.url, gSources.selectedValue,
+    is(breakpointClient.location.actor, gSources.selectedValue,
       "Breakpoint client url is the same.");
     is(breakpointClient.location.line, 19,
       "Breakpoint client line is new.");
 
-    is(breakpointClient.requestedLocation.url, gSources.selectedValue,
+    is(breakpointClient.requestedLocation.actor, gSources.selectedValue,
       "Requested location url is correct");
     is(breakpointClient.requestedLocation.line, 17,
       "Requested location line is correct");

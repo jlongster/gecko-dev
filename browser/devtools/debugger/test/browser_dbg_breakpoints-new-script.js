@@ -8,7 +8,7 @@
 
 const TAB_URL = EXAMPLE_URL + "doc_inline-script.html";
 
-let gTab, gDebuggee, gPanel, gDebugger;
+let gTab, gDebuggee, gPanel, gDebugger, gSources;
 
 function test() {
   initDebugger(TAB_URL).then(([aTab, aDebuggee, aPanel]) => {
@@ -16,6 +16,7 @@ function test() {
     gDebuggee = aDebuggee;
     gPanel = aPanel;
     gDebugger = gPanel.panelWin;
+    gSources = gDebugger.DebuggerView.Sources;
 
     addBreakpoint();
   });
@@ -28,7 +29,7 @@ function addBreakpoint() {
     ok(isCaretPos(gPanel, 16),
       "The source editor caret position is incorrect (1).");
 
-    gPanel.addBreakpoint({ url: TAB_URL, line: 20 }).then(() => {
+    gPanel.addBreakpoint({ actor: getSourceActor(gSources, TAB_URL), line: 20 }).then(() => {
       testResume();
     });
   });

@@ -36,7 +36,7 @@ function getAllBreakpoints(dbg) {
   for (let source of sources) {
     for (let { attachment: breakpoint } of source) {
       breakpoints.push({
-        url: source.value,
+        url: source.attachment.source.url,
         label: source.attachment.label + ":" + breakpoint.line,
         lineNumber: breakpoint.line,
         lineText: breakpoint.text,
@@ -46,6 +46,25 @@ function getAllBreakpoints(dbg) {
   }
 
   return breakpoints;
+}
+
+function getAllSources(dbg) {
+  if (!dbg) {
+    return [];
+  }
+
+  let items = dbg._view.Sources.items;
+  return items.reduce(function(acc, item) {
+    let source = item.attachment.source;
+    if (source.url) {
+      acc.push({
+        name: source.url,
+        value: source.actor
+      });
+    }
+
+    return acc;
+  }, []);
 }
 
 /**
@@ -142,12 +161,8 @@ exports.items.push({
       name: "file",
       type: {
         name: "selection",
-        data: function(context) {
-          let dbg = getPanel(context, "jsdebugger");
-          if (dbg) {
-            return dbg._view.Sources.values;
-          }
-          return [];
+        lookup: function(context) {
+          return getAllSources(getPanel(context, "jsdebugger"));
         }
       },
       description: gcli.lookup("breakaddlineFileDesc")
@@ -166,7 +181,10 @@ exports.items.push({
     }
 
     let deferred = context.defer();
-    let position = { url: args.file, line: args.line };
+    let item = dbg._view.Sources.getItemForAttachment(a => {
+      return a.source && a.source.actor === args.file;
+    })
+    let position = { actor: item.value, line: args.line };
 
     dbg.addBreakpoint(position).then(() => {
       deferred.resolve(gcli.lookup("breakaddAdded"));
@@ -211,8 +229,13 @@ exports.items.push({
       return gcli.lookup("debuggerStopped");
     }
 
+    let source = dbg._view.Sources.getItemForAttachment(a => {
+      return a.source && a.source.url === args.breakpoint.url
+    });
+
     let deferred = context.defer();
-    let position = { url: args.breakpoint.url, line: args.breakpoint.lineNumber };
+    let position = { actor: source.attachment.source.actor,
+                     line: args.breakpoint.lineNumber };
 
     dbg.removeBreakpoint(position).then(() => {
       deferred.resolve(gcli.lookup("breakdelRemoved"));
@@ -390,14 +413,14 @@ exports.items.push({
       return gcli.lookup("debuggerClosed");
     }
 
-    let sources = dbg._view.Sources.values;
+    let sources = getAllSources(dbg);
     let doc = context.environment.chromeDocument;
     let div = createXHTMLElement(doc, "div");
     let ol = createXHTMLElement(doc, "ol");
 
     sources.forEach(source => {
       let li = createXHTMLElement(doc, "li");
-      li.textContent = source;
+      li.textContent = source.name;
       ol.appendChild(li);
     });
     div.appendChild(ol);
@@ -433,12 +456,8 @@ exports.items.push({
         name: "source",
         type: {
           name: "selection",
-          data: function(context) {
-            let dbg = getPanel(context, "jsdebugger");
-            if (dbg) {
-              return dbg._view.Sources.values;
-            }
-            return [];
+          lookup: function(context) {
+            return getAllSources(getPanel(context, "jsdebugger"));
           }
         },
         description: lookup("SourceDesc"),
@@ -472,7 +491,7 @@ exports.items.push({
 
       function shouldBlackBox(source) {
         var value = globRegExp && globRegExp.test(source.url)
-          || args.source && source.url == args.source;
+          || args.source && source.actor == args.source;
         return args.invert ? !value : value;
       }
 
