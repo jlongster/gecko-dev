@@ -539,16 +539,7 @@ LocalDebuggerTransport.prototype = {
       DevToolsUtils.executeSoon(DevToolsUtils.makeInfallible(() => {
         // Avoid the cost of JSON.stringify() when logging is disabled.
         if (dumpn.wantLogging) {
-          try {
-            dumpn("Received packet " + serial + ": " + JSON.stringify(packet, null, 2));
-          }
-          catch(e) {
-            for(var k in packet) {
-              dump(k + ' ');
-            }
-            dump('\n');
-            throw e;
-          }
+          dumpn("Received packet " + serial + ": " + JSON.stringify(packet, null, 2));
         }
         if (other.hooks) {
           other.hooks.onPacket(packet);

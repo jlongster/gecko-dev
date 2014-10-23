@@ -250,7 +250,8 @@ BreakpointStore.prototype = {
       dbg_assert(aSearchParams.source.actor != null);
     }
 
-    for (let actor of this._iterActor(aSearchParams.source && aSearchParams.source.actor)) {
+    let actor = aSearchParams.source && aSearchParams.source.actor;
+    for (let actor of this._iterActors(actor)) {
       for (let line of this._iterLines(actor, aSearchParams.line)) {
         // Always yield whole line breakpoints first. See comment in
         // |BreakpointStore.prototype.hasBreakpoint|.
@@ -266,7 +267,7 @@ BreakpointStore.prototype = {
     }
   },
 
-  _iterActor: function* (actor) {
+  _iterActors: function* (actor) {
     if (actor) {
       if (this._breakpoints[actor] || this._wholeLineBreakpoints[actor]) {
         yield actor;
@@ -346,8 +347,8 @@ SourceActorStore.prototype = {
   /**
    * Lookup an existing actor id that represents this source, if available
    */
-  getReusableId: function(aSource, aOriginalUrl) {
-    let url = this.getUniqueURL(aSource, aOriginalUrl);
+  getReusableActorId: function(aSource, aOriginalUrl) {
+    let url = this.getUniqueKey(aSource, aOriginalUrl);
     if (url in this._sourceActorIds) {
       return this._sourceActorIds[url];
     }
@@ -357,8 +358,8 @@ SourceActorStore.prototype = {
   /**
    * Update a source with an actorID
    */
-  setReusableId: function(aSource, aOriginalUrl, actorID) {
-    let url = this.getUniqueURL(aSource, aOriginalUrl);
+  setReusableActorId: function(aSource, aOriginalUrl, actorID) {
+    let url = this.getUniqueKey(aSource, aOriginalUrl);
     if (url) {
       this._sourceActorIds[url] = actorID;
     }
@@ -367,7 +368,7 @@ SourceActorStore.prototype = {
   /**
    * Make a unique URL from a source that identifies it across reloads
    */
-  getUniqueURL: function(aSource, aOriginalUrl) {
+  getUniqueKey: function(aSource, aOriginalUrl) {
     if (aOriginalUrl) {
       // Original source from a sourcemap
       return aOriginalUrl;
@@ -2301,18 +2302,19 @@ function resolveURIToLocalPath(aURI) {
  * created for both the "generated" and "original" sources, and the client will
  * only see the original sources. We separate these because there isn't
  * a 1:1 mapping of generated to original sources; one generated source
- * may represent 10 original sources, so we need to create 11 separate
+ * may represent N original sources, so we need to create N + 1 separate
  * actors.
  *
  * There are 4 different scenarios for sources that you should
  * understand:
  *
- * - A normal source
+ * - A single non-sourcemapped source that is not inlined in HTML
+ * - (separate JS file, eval'ed code, etc)
  * - A single sourcemapped source which creates 10 original sources
  * - An HTML page with multiple inline scripts, which are distinct
  *   sources, but should be represented as a single source
  * - A pretty-printed source (which may or may not be an original
- * - sourcemapped source), which generates a sourcemap for itself
+ *   sourcemapped source), which generates a sourcemap for itself
  *
  * The complexity of `SourceActor` and `ThreadSources` are to handle
  * all of thise cases and hopefully internalize the complexities.
@@ -2455,12 +2457,10 @@ SourceActor.prototype = {
   },
 
   _getSourceText: function () {
-    let toResolvedContent = t => {
-      return {
-        content: t,
-        contentType: this._contentType
-      };
-    }
+    let toResolvedContent = t => ({
+      content: t,
+      contentType: this._contentType
+    });
 
     let genSource = this.generatedSource || this.source;
     return this.threadActor.sources.fetchSourceMap(genSource).then(map => {
@@ -5163,7 +5163,7 @@ function ThreadSources(aThreadActor, aOptions, aAllowPredicate,
   // Debugger.Source -> SourceActor
   this._sourceActors = new Map();
   // url -> SourceActor
-  this._sourcemappedSourceActors = Object.create(null);
+  this._sourceMappedSourceActors = Object.create(null);
 }
 
 /**
@@ -5208,8 +5208,8 @@ ThreadSources.prototype = {
       // HTML page. The actor representing this fake HTML source is
       // stored in this array, which always has a URL, so check it
       // first.
-      if (source.url in this._sourcemappedSourceActors) {
-        return this._sourcemappedSourceActors[source.url];
+      if (source.url in this._sourceMappedSourceActors) {
+        return this._sourceMappedSourceActors[source.url];
       }
 
       if (isInlineSource) {
@@ -5229,14 +5229,14 @@ ThreadSources.prototype = {
       // generated script. Pretty-printed sources have a sourcemap for
       // themselves, so we need to make sure there a real source
       // doesn't already exist with this URL.
-      for(let [source, actor] of this._sourceActors) {
+      for (let [source, actor] of this._sourceActors) {
         if (source.url === originalUrl) {
           return actor;
         }
       }
 
-      if (originalUrl in this._sourcemappedSourceActors) {
-        return this._sourcemappedSourceActors[originalUrl];
+      if (originalUrl in this._sourceMappedSourceActors) {
+        return this._sourceMappedSourceActors[originalUrl];
       }
     }
 
@@ -5249,13 +5249,13 @@ ThreadSources.prototype = {
     });
 
     let sourceActorStore = this._thread.sourceActorStore;
-    var id = sourceActorStore.getReusableId(source, originalUrl);
+    var id = sourceActorStore.getReusableActorId(source, originalUrl);
     if (id) {
       actor.actorID = id;
     }
 
     this._thread.threadLifetimePool.addActor(actor);
-    sourceActorStore.setReusableId(source, originalUrl, actor.actorID);
+    sourceActorStore.setReusableActorId(source, originalUrl, actor.actorID);
 
     if (this._autoBlackBox && this._isMinifiedURL(actor.url)) {
       this.blackBox(actor.url);
@@ -5265,7 +5265,7 @@ ThreadSources.prototype = {
       this._sourceActors.set(source, actor);
     }
     else {
-      this._sourcemappedSourceActors[originalUrl] = actor;
+      this._sourceMappedSourceActors[originalUrl] = actor;
     }
 
     // Don't notify a new source if it's a generated one, as it has
@@ -5283,8 +5283,8 @@ ThreadSources.prototype = {
   },
 
   getSource: function(source) {
-    if (source.url in this._sourcemappedSourceActors) {
-      return this._sourcemappedSourceActors[source.url];
+    if (source.url in this._sourceMappedSourceActors) {
+      return this._sourceMappedSourceActors[source.url];
     }
 
     if (this._sourceActors.has(source)) {
@@ -5297,14 +5297,14 @@ ThreadSources.prototype = {
 
   getSourceByURL: function(url) {
     if (url) {
-      for(let [source, actor] of this._sourceActors) {
+      for (let [source, actor] of this._sourceActors) {
         if (source.url === url) {
           return actor;
         }
       }
 
-      if (url in this._sourcemappedSourceActors) {
-        return this._sourcemappedSourceActors[url];
+      if (url in this._sourceMappedSourceActors) {
+        return this._sourceMappedSourceActors[url];
       }
     }
 
@@ -5366,7 +5366,7 @@ ThreadSources.prototype = {
   /**
    * Return a promise of an array of source actors representing all the
    * sources of |aScript|.
-
+   *
    * If source map handling is enabled and |aScript| has a source map, then
    * use it to find all of |aScript|'s *original* sources; return a promise
    * of an array of source actors for those.
@@ -5383,11 +5383,10 @@ ThreadSources.prototype = {
             this.source({ originalUrl: s,
                           generatedSource: aScript.source })
             for (s of map.sources)
-            ];
+          ];
         }
-        else {
-          return [this._sourceForScript(aScript)];
-        }
+
+        return [this._sourceForScript(aScript)];
       })
       .then(ss => ss.filter(isNotNull));
   },
@@ -5395,9 +5394,8 @@ ThreadSources.prototype = {
   /**
    * Return a promise of a SourceMapConsumer for the source map for
    * `aSource`; if we already have such a promise extant, return that.
-   * This should only be called if you really know what you're doing,
-   * otherwise use `getSourcemap`. This will install a source map for
-   * the source regardless of the pref for using source maps.
+   * This will fetch the source map if we don't have a cached object
+   * and source maps are enabled (see `_fetchSourceMap`).
    */
   fetchSourceMap: function (aSource) {
     if (this._sourceMaps.has(aSource)) {
@@ -5440,7 +5438,8 @@ ThreadSources.prototype = {
   /**
    * Return a promise of a SourceMapConsumer for the source map located at
    * |aAbsSourceMapURL|, which must be absolute. If there is already such a
-   * promise extant, return it.
+   * promise extant, return it. This will not fetch if source maps are
+   * disabled.
    *
    * @param string aAbsSourceMapURL
    *        The source map URL, in absolute form, not relative.
@@ -5491,6 +5490,21 @@ ThreadSources.prototype = {
       ".", null, Services.io.newURI(aPath, null, null)).spec;
   },
 
+  /**
+   * Clears the source map cache. Source maps are cached by URL so
+   * they can be reused across separate Debugger instances (once in
+   * this cache, they will never be reparsed again). They are
+   * also cached by Debugger.Source objects for usefulness. By default
+   * this just removes the Debugger.Source cache, but you can remove
+   * the lower-level URL cache with the `hard` option.
+   *
+   * @param aSourceMapURL string
+   *        The source map URL to uncache
+   * @param opts object
+   *        An object with the following properties:
+   *        - hard: Also remove the lower-level URL cache, which will
+   *          make us completely forget about the source map.
+   */
   clearSourceMapCache: function(aSourceMapURL, opts = { hard: false }) {
     let oldSm = this._sourceMapCache[aSourceMapURL];
 
@@ -5500,7 +5514,7 @@ ThreadSources.prototype = {
 
     if (oldSm) {
       // Clear out the current cache so all sources will get the new one
-      for(let [source, sm] of this._sourceMaps.entries()) {
+      for (let [source, sm] of this._sourceMaps.entries()) {
         if (sm === oldSm) {
           this._sourceMaps.delete(source);
         }
@@ -5508,6 +5522,20 @@ ThreadSources.prototype = {
     }
   },
 
+  /*
+   * Forcefully change the source map of a source, changing the
+   * sourceMapURL and installing the source map in the cache. This is
+   * necessary to expose changes across Debugger instances
+   * (pretty-printing is the use case). Generate a random url if one
+   * isn't specified, allowing you to set "anonymous" source maps.
+   *
+   * @param aSource Debugger.Source
+   *        The source to change the sourceMapURL property
+   * @param aUrl string
+   *        The source map URL (optional)
+   * @param aMap SourceMapConsumer
+   *        The source map instance
+   */
   setSourceMapHard: function(aSource, aUrl, aMap) {
     let url = aUrl;
     if (!url) {
@@ -5557,17 +5585,16 @@ ThreadSources.prototype = {
           name: sourceName
         };
       }
-      else {
-        // No source map
-        return resolve({
-          // Don't use `getSource` because sources may have not been
-          // created yet
-          sourceActor: this.source({ source }),
-          url: source.url,
-          line: line,
-          column: column
-        });
-      }
+
+      // No source map
+      return resolve({
+        // Don't use `getSource` because sources may have not been
+        // created yet
+        sourceActor: this.source({ source }),
+        url: source.url,
+        line: line,
+        column: column
+      });
     });
   },
 
@@ -5696,8 +5723,8 @@ ThreadSources.prototype = {
   },
 
   iter: function () {
-    let actors = Object.keys(this._sourcemappedSourceActors).map(k => {
-      return this._sourcemappedSourceActors[k];
+    let actors = Object.keys(this._sourceMappedSourceActors).map(k => {
+      return this._sourceMappedSourceActors[k];
     });
     for (let actor of this._sourceActors.values()) {
       if (!this._sourceMaps.has(actor.source)) {
