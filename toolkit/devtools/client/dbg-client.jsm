@@ -2420,6 +2420,7 @@ function BreakpointClient(aClient, aSourceClient, aActor, aLocation, aCondition)
   this.location = aLocation;
   this.location.actor = aSourceClient.actor;
   this.location.url = aSourceClient.url;
+  this.source = aSourceClient;
   this.request = this._client.request;
 
   // The condition property should only exist if it's a truthy value
@@ -2495,8 +2496,7 @@ BreakpointClient.prototype = {
           return;
         }
 
-        let source = gThreadClient.source({ actor: this.location.actor })
-        source.setBreakpoint(info, (aResponse, aNewBreakpoint) => {
+        this.source.setBreakpoint(info, (aResponse, aNewBreakpoint) => {
           if (aResponse && aResponse.error) {
             deferred.reject(aResponse);
           } else {
