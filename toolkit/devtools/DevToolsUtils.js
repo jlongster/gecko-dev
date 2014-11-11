@@ -361,6 +361,31 @@ exports.update = function update(aTarget, aNewAttrs) {
   }
 }
 
+/*
+ * Returns a new object that has all of the properties of `obj1` and
+ * `obj2` combined.
+ */
+exports.merge = function merge(obj1, obj2) {
+  var res = {};
+  Object.keys(obj1).forEach(k => {
+    res[k] = obj1[k];
+  });
+  Object.keys(obj2).forEach(k => {
+    res[k] = obj2[k];
+  });
+  return res;
+}
+
+/**
+ * Utility function for getting the values from an object as an array
+ *
+ * @param aObject Object
+ *        The object to iterate over
+ */
+exports.values = function values(aObject) {
+  return Object.keys(aObject).map(k => aObject[k]);
+}
+
 /**
  * Defines a getter on a specified object that will be created upon first use.
  *
@@ -444,8 +469,6 @@ exports.fetch = function fetch(aURL, aOptions={ loadFromCache: true }) {
     url = "file://" + url;
     scheme = Services.io.extractScheme(url);
   }
-
-  dump('scheme: ' + scheme);
 
   switch (scheme) {
     case "file":

@@ -54,17 +54,12 @@ function getAllSources(dbg) {
   }
 
   let items = dbg._view.Sources.items;
-  return items.reduce(function(acc, item) {
-    let source = item.attachment.source;
-    if (source.url) {
-      acc.push({
-        name: source.url,
-        value: source.actor
-      });
-    }
-
-    return acc;
-  }, []);
+  return items
+    .filter(item => !!item.attachment.source.url)
+    .map(item => ({
+      name: item.attachment.source.url,
+      value: item.attachment.source.actor
+    }));
 }
 
 /**

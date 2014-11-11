@@ -11,7 +11,7 @@ const { Cc, Ci, Cu, components, ChromeWorker } = require("chrome");
 const { ActorPool, getOffsetColumn } = require("devtools/server/actors/common");
 const { DebuggerServer } = require("devtools/server/main");
 const DevToolsUtils = require("devtools/toolkit/DevToolsUtils");
-const { dbg_assert, dumpn, update, fetch } = DevToolsUtils;
+const { dbg_assert, dumpn, update, merge, fetch } = DevToolsUtils;
 const { SourceMapConsumer, SourceMapGenerator } = require("source-map");
 const promise = require("promise");
 const PromiseDebugging = require("PromiseDebugging");
@@ -250,7 +250,7 @@ BreakpointStore.prototype = {
       dbg_assert(aSearchParams.source.actor != null);
     }
 
-    let actor = aSearchParams.source && aSearchParams.source.actor;
+    let actor = aSearchParams.source ? aSearchParams.source.actor : null;
     for (let actor of this._iterActors(actor)) {
       for (let line of this._iterLines(actor, aSearchParams.line)) {
         // Always yield whole line breakpoints first. See comment in
@@ -349,7 +349,7 @@ SourceActorStore.prototype = {
    */
   getReusableActorId: function(aSource, aOriginalUrl) {
     let url = this.getUniqueKey(aSource, aOriginalUrl);
-    if (url in this._sourceActorIds) {
+    if (url && url in this._sourceActorIds) {
       return this._sourceActorIds[url];
     }
     return null;
@@ -374,14 +374,7 @@ SourceActorStore.prototype = {
       return aOriginalUrl;
     }
     else {
-      // For eval sources, forcefully return null if they don't have
-      // these special URLs. Right now eval sources have a
-      // `source.url` property when they shouldn't.
-      let url = aSource.displayURL || aSource.sourceMapURL;
-      if (!url && aSource.introductionType !== 'eval') {
-        url = aSource.url;
-      }
-      return url;
+      return getSourceURL(aSource);
     }
   }
 };
@@ -853,8 +846,22 @@ ThreadActor.prototype = {
 
       let loc = getFrameLocation(aFrame);
       this.sources.getOriginalLocation(loc).then(aOrigPosition => {
+        if(!aOrigPosition.sourceActor) {
+          // The only time the source actor will be null is if there
+          // was a sourcemap and it tried to look up the original
+          // location but there was no original URL. This is a strange
+          // scenario so we simply don't pause
+          DevToolsUtils.reportException(
+            'ThreadActor',
+            new Error('attempted to pause in a script with a sourcemap but ' +
+                      'could not find original location')
+          );
+
+          return undefined;
+        }
+
         packet.frame.where = {
-          source: aOrigPosition.sourceActor && aOrigPosition.sourceActor.form(),
+          source: aOrigPosition.sourceActor.form(),
           line: aOrigPosition.line,
           column: aOrigPosition.column
         };
@@ -1990,7 +1997,7 @@ ThreadActor.prototype = {
     const generatedLocation = getFrameLocation(aFrame);
     const { sourceActor } = this.synchronize(this.sources.getOriginalLocation(
       generatedLocation));
-    const url = sourceActor && sourceActor.url;
+    const url = sourceActor ? sourceActor.url : null;
 
     return this.sources.isBlackBoxed(url) || aFrame.onStep
       ? undefined
@@ -2022,7 +2029,7 @@ ThreadActor.prototype = {
     const generatedLocation = getFrameLocation(aFrame);
     const { sourceActor } = this.synchronize(this.sources.getOriginalLocation(
       generatedLocation));
-    const url = sourceActor && sourceActor.url;
+    const url = sourceActor ? sourceActor.url : null;
 
     if (this.sources.isBlackBoxed(url)) {
       return undefined;
@@ -2309,7 +2316,7 @@ function resolveURIToLocalPath(aURI) {
  * understand:
  *
  * - A single non-sourcemapped source that is not inlined in HTML
- * - (separate JS file, eval'ed code, etc)
+ *   (separate JS file, eval'ed code, etc)
  * - A single sourcemapped source which creates 10 original sources
  * - An HTML page with multiple inline scripts, which are distinct
  *   sources, but should be represented as a single source
@@ -2389,9 +2396,10 @@ SourceActor.prototype = {
     // This might not have a source or a generatedSource because we
     // treat HTML pages with inline scripts as a special SourceActor
     // that doesn't have either
-    let introductionUrl = (source &&
-                           source.introductionScript &&
-                           source.introductionScript.source.url);
+    let introductionUrl = null;
+    if(source && source.introductionScript) {
+      introductionUrl = source.introductionScript.source.url;
+    }
 
     return {
       actor: this.actorID,
@@ -2400,7 +2408,8 @@ SourceActor.prototype = {
       addonPath: this._addonPath,
       isBlackBoxed: this.threadActor.sources.isBlackBoxed(this.url),
       isPrettyPrinted: this.threadActor.sources.isPrettyPrinted(this.url),
-      introductionUrl: introductionUrl
+      introductionUrl: introductionUrl,
+      introductionType: source ? source.introductionType : null
     };
   },
 
@@ -2507,37 +2516,40 @@ SourceActor.prototype = {
       from: this.actorID
     };
 
-    return resolve(null).then(() => {
-      if (this.generatedSource) {
-        return this.threadActor.sources.getSourceMap(this.generatedSource).then(sm => {
-          let lines = new Set();
-
-          // Position of executable lines in the generated source
-          let offsets = this.getExecutableOffsets(this.generatedSource, false);
-          for (let offset of offsets) {
-            let {line, sourceUrl} = sm.originalPositionFor({
-              line: offset.lineNumber,
-              column: offset.columnNumber
-            });
-
-            if (sourceUrl === this.url) {
-              lines.add(line);
-            }
-          }
-        });
-      }
-      else {
-        return this.getExecutableOffsets(this.source, true);
-      }
-    }).then(function(lines) {
+    function sortLines(lines) {
       // Converting the Set into an array
-      packet.lines = [line for (line of lines)];
-      packet.lines.sort((a, b) => {
+      lines = [line for (line of lines)];
+      lines.sort((a, b) => {
         return a - b;
       });
+      return lines;
+    }
 
-      return packet;
-    });
+    if (this.generatedSource) {
+      return this.threadActor.sources.getSourceMap(this.generatedSource).then(sm => {
+        let lines = new Set();
+
+        // Position of executable lines in the generated source
+        let offsets = this.getExecutableOffsets(this.generatedSource, false);
+        for (let offset of offsets) {
+          let {line, source: sourceUrl} = sm.originalPositionFor({
+            line: offset.lineNumber,
+            column: offset.columnNumber
+          });
+
+          if (sourceUrl === this.url) {
+            lines.add(line);
+          }
+        }
+
+        packet.lines = sortLines(lines);
+        return packet;
+      });
+    }
+
+    let lines = this.getExecutableOffsets(this.source, true);
+    packet.lines = sortLines(lines);
+    return packet;
   },
 
   /**
@@ -5359,6 +5371,10 @@ ThreadSources.prototype = {
         // Not a valid URI.
       }
     }
+    else {
+      // Assume the content is javascript if there's no URL
+      spec.contentType = "text/javascript";
+    }
 
     return this.source(spec);
   },
@@ -5631,13 +5647,12 @@ ThreadSources.prototype = {
           column: genColumn
         };
       }
-      else {
-        return resolve({
-          sourceActor: sourceActor,
-          line: line,
-          column: column
-        });
-      }
+
+      return resolve({
+        sourceActor: sourceActor,
+        line: line,
+        column: column
+      });
     });
   },
 
@@ -5739,21 +5754,6 @@ exports.ThreadSources = ThreadSources;
 
 // Utility functions.
 
-/*
- * Returns a new object that has all of the properties of `obj1` and
- * `obj2` combined.
- */
-function merge(obj1, obj2) {
-  var res = {};
-  Object.keys(obj1).forEach(k => {
-    res[k] = obj1[k];
-  });
-  Object.keys(obj2).forEach(k => {
-    res[k] = obj2[k];
-  });
-  return res;
-}
-
 /**
  * Checks if a source should never be displayed to the user because
  * it's either internal or we don't support in the UI yet.
@@ -5839,8 +5839,17 @@ function getSymbolName(symbol) {
 }
 
 function getSourceURL(source) {
-  if (source.introductionType !== 'eval') {
-    return source.url;
+  let introType = source.introductionType;
+  // These are all the sources that are essentially eval-ed (either
+  // by calling eval or passing a string to one of these functions).
+  // Current these have a `url` property when the shouldn't, so
+  // forcefully only consider displayURL
+  if (introType === 'eval' ||
+      introType === 'Function' ||
+      introType === 'eventHandler' ||
+      introType === 'setTimeout' ||
+      introType === 'setInterval') {
+    return source.displayURL;
   }
-  return null;
+  return source.url;
 }

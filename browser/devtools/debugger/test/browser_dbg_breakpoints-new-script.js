@@ -88,4 +88,5 @@ registerCleanupFunction(function() {
   gDebuggee = null;
   gPanel = null;
   gDebugger = null;
+  gSources = null;
 });

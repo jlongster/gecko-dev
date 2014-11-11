@@ -265,7 +265,7 @@ function ensureSourceIs(aPanel, aUrlOrSource, aWaitFlag = false) {
   let sources = aPanel.panelWin.DebuggerView.Sources;
   let item = sources.getItemForAttachment(a => {
     return (a.source &&
-            (a.source.url.indexOf(aUrlOrSource) !== -1 ||
+            (a.source.url && a.source.url.indexOf(aUrlOrSource) !== -1 ||
              a.source.actor === aUrlOrSource));
   });
 
