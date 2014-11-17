@@ -7,10 +7,12 @@
 BROWSER_CHROME_MANIFESTS += ['test/browser.ini']
 
 EXTRA_JS_MODULES.devtools.webconsole += [
+    'components.js',
     'console-commands.js',
     'console-output.js',
     'hudservice.js',
+    'lib/react.js',
     'network-panel.js',
     'panel.js',
-    'webconsole.js',
+    'webconsole.js'
 ]

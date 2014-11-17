@@ -204,6 +204,8 @@ function WebConsoleFrame(aWebConsoleOwner)
 
   this.output = new ConsoleOutput(this);
 
+  this.messages = [];
+
   this._toggleFilter = this._toggleFilter.bind(this);
   this._onPanelSelected = this._onPanelSelected.bind(this);
   this._flushMessageQueue = this._flushMessageQueue.bind(this);
@@ -2082,7 +2084,20 @@ WebConsoleFrame.prototype = {
 
     this._outputQueue.push([aCategory, aMethodOrNode, aArguments]);
 
-    this._initOutputTimer();
+    //this._initOutputTimer();
+
+    if(aCategory === CATEGORY_WEBDEV &&
+       aMethodOrNode === this.logConsoleAPIMessage) {
+      let msg = aArguments[0];
+      if(msg.level === 'log') {
+        //this.messages.push(this.logConsoleAPIMessage.apply(this,
+        //aArguments));
+
+        this.window.React.render(this.window.OutputElement({
+          messages: this.messages
+        }), this.outputNode);
+      }
+    }
   },
 
   /**
@@ -2095,9 +2110,9 @@ WebConsoleFrame.prototype = {
   _flushMessageQueue: function WCF__flushMessageQueue()
   {
     this._outputTimerInitialized = false;
-    if (!this._outputTimer) {
-      return;
-    }
+    // if (!this._outputTimer) {
+    //   return;
+    // }
 
     let startTime = Date.now();
     let timeSinceFlush = startTime - this._lastOutputFlush;

@@ -27,6 +27,8 @@
   <script type="application/javascript;version=1.8"
           src="chrome://browser/content/devtools/theme-switching.js"/>
   <script type="text/javascript" src="chrome://global/content/globalOverlay.js"/>
+  <script type="text/javascript" src="resource:///modules/devtools/webconsole/lib/react.js"/>
+  <script type="text/javascript" src="resource:///modules/devtools/webconsole/components.js"/>
   <script type="text/javascript"><![CDATA[
 function goUpdateConsoleCommands() {
   goUpdateCommand("consoleCmd_openURL");
