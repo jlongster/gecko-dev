@@ -42,7 +42,12 @@ const ConsoleMessage = Element({
   },
 
   componentDidMount: function() {
-    this.getDOMNode().setAttribute('category', 'console');
+    this.componentDidUpdate();
+  },
+
+  componentDidUpdate: function() {
+    this.getDOMNode().setAttribute('category', this.props.category);
+    this.getDOMNode().setAttribute('severity', this.props.severity);
   },
 
   render: function() {
@@ -119,7 +124,9 @@ const OutputElement = Element({
       .map((m, i) => {
         return ConsoleMessage({
           key: 'visible-' + i,
-          pieces: m
+          pieces: m.pieces,
+          severity: m.severity,
+          category: m.category
         })
       });
 
@@ -194,7 +201,9 @@ const OutputElementCull = Element({
       messages = this.props.messages.slice(start, end).map((m, i) => {
         return ConsoleMessage({
           key: 'visible-' + i,
-          pieces: m,
+          pieces: m.pieces,
+          severity: m.severity,
+          category: m.category,
           style: state.elementHeight ? {
             position: 'absolute',
             top: ((start + i) * state.elementHeight) + 'px',
@@ -205,7 +214,9 @@ const OutputElementCull = Element({
       });
     }
     else if(this.props.messages.length) {
-      messages = ConsoleMessage({ pieces: this.props.messages[0] });
+      messages = ConsoleMessage({
+        pieces: this.props.messages[0].pieces
+      });
     }
 
     return div({ id: 'output-container',
@@ -231,7 +242,7 @@ function reactClearMessages() {
 }
 
 function reactRender() {
-  React.render(OutputElement({
+  React.render(OutputElementCull({
     messages: messages
   }), document.getElementById("output-container-mount"));
   renderTimer = null;

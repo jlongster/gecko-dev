@@ -2085,12 +2085,24 @@ WebConsoleFrame.prototype = {
     //this._outputQueue.push([aCategory, aMethodOrNode, aArguments]);
     //this._initOutputTimer();
 
+    let msg = aArguments[0];
+
     if(aCategory === CATEGORY_WEBDEV &&
        aMethodOrNode === this.logConsoleAPIMessage) {
-      let msg = aArguments[0];
-      if(msg.level === 'log') {
+      if(msg.level === 'log' ||
+         msg.level === 'info' ||
+         msg.level === 'warn' ||
+         msg.level === 'error' ||
+         msg.level === 'exception' ||
+         msg.level === 'assert' ||
+         msg.level === 'debug') {
+        msg.category = aCategory;
         this.window.reactAddMessage(parseMessage(msg));
       }
+    }
+
+    if(aCategory === 'eval' && aMethodOrNode === 'eval') {
+      this.window.reactAddMessage(parseMessage(msg));
     }
   },
 
@@ -3287,33 +3299,44 @@ JSTerm.prototype = {
       return;
     }
 
-    let msg = new Messages.JavaScriptEvalOutput(aResponse, errorMessage);
-    this.hud.output.addMessage(msg);
+    //let msg = new Messages.JavaScriptEvalOutput(aResponse, errorMessage);
+    //this.hud.output.addMessage(msg);
 
-    if (aCallback) {
-      let oldFlushCallback = this.hud._flushCallback;
-      this.hud._flushCallback = () => {
-        aCallback(msg.element);
-        if (oldFlushCallback) {
-          oldFlushCallback();
-          this.hud._flushCallback = oldFlushCallback;
-          return true;
-        }
+    this.hud.output.owner.outputMessage(
+      'eval',
+      'eval',
+      [{ response: aResponse,
+         error: errorMessage }]
+    );
 
-        return false;
-      };
+    if(aCallback) {
+      aCallback();
     }
 
-    msg._afterMessage = aAfterMessage;
-    msg._objectActors = new Set();
+    // if (aCallback) {
+    //   let oldFlushCallback = this.hud._flushCallback;
+    //   this.hud._flushCallback = () => {
+    //     aCallback(msg.element);
+    //     if (oldFlushCallback) {
+    //       oldFlushCallback();
+    //       this.hud._flushCallback = oldFlushCallback;
+    //       return true;
+    //     }
 
-    if (WebConsoleUtils.isActorGrip(aResponse.exception)) {
-      msg._objectActors.add(aResponse.exception.actor);
-    }
+    //     return false;
+    //   };
+    // }
 
-    if (WebConsoleUtils.isActorGrip(result)) {
-      msg._objectActors.add(result.actor);
-    }
+    // msg._afterMessage = aAfterMessage;
+    // msg._objectActors = new Set();
+
+    // if (WebConsoleUtils.isActorGrip(aResponse.exception)) {
+    //   msg._objectActors.add(aResponse.exception.actor);
+    // }
+
+    // if (WebConsoleUtils.isActorGrip(result)) {
+    //   msg._objectActors.add(result.actor);
+    // }
   },
 
   /**
