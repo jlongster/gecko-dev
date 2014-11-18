@@ -11,8 +11,10 @@ EXTRA_JS_MODULES.devtools.webconsole += [
     'console-commands.js',
     'console-output.js',
     'hudservice.js',
-    'lib/react.js',
+    'lib',
     'network-panel.js',
     'panel.js',
+    'parser.js',
+    'react-webconsole.css',
     'webconsole.js'
 ]

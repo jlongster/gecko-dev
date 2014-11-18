@@ -13,6 +13,7 @@
                  type="text/css"?>
 <?xml-stylesheet href="chrome://browser/skin/devtools/webconsole.css"
                  type="text/css"?>
+<?xml-stylesheet href="resource:///modules/devtools/webconsole/react-webconsole.css" type="text/css"?>
 <?xul-overlay href="chrome://global/content/editMenuOverlay.xul"?>
 <window xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul"
         id="devtools-webconsole"
@@ -27,8 +28,6 @@
   <script type="application/javascript;version=1.8"
           src="chrome://browser/content/devtools/theme-switching.js"/>
   <script type="text/javascript" src="chrome://global/content/globalOverlay.js"/>
-  <script type="text/javascript" src="resource:///modules/devtools/webconsole/lib/react.js"/>
-  <script type="text/javascript" src="resource:///modules/devtools/webconsole/components.js"/>
   <script type="text/javascript"><![CDATA[
 function goUpdateConsoleCommands() {
   goUpdateCommand("consoleCmd_openURL");
@@ -176,7 +175,8 @@ function goUpdateConsoleCommands() {
       </toolbar>
 
       <hbox id="output-wrapper" flex="1" context="output-contextmenu" tooltip="aHTMLTooltip">
-        <div xmlns="http://www.w3.org/1999/xhtml" id="output-container"
+        <div xmlns="http://www.w3.org/1999/xhtml" id="output-container-mount"
+             style="-moz-box-flex: 1"
              tabindex="0" role="document" aria-live="polite" />
       </hbox>
       <notificationbox id="webconsole-notificationbox">
@@ -199,4 +199,7 @@ function goUpdateConsoleCommands() {
       <tabpanels flex="1"/>
     </tabbox>
   </box>
+
+  <script type="text/javascript" src="resource:///modules/devtools/webconsole/lib/react.js"/>
+  <script type="text/javascript" src="resource:///modules/devtools/webconsole/components.js"/>
 </window>

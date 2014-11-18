@@ -1,0 +1,15 @@
+#output-container {
+    position: relative;
+}
+
+#output-container.hideTimestamps > .message {
+    padding-left: 7px;
+    -moz-margin-start: 0;
+}
+
+.message {
+    height: 2em;
+    -moz-box-sizing: border-box;
+    box-sizing: border-box;
+}
+

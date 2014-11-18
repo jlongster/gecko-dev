@@ -9,7 +9,6 @@
 const {Cc, Ci, Cu} = require("chrome");
 
 let WebConsoleUtils = require("devtools/toolkit/webconsole/utils").Utils;
-
 loader.lazyServiceGetter(this, "clipboardHelper",
                          "@mozilla.org/widget/clipboardhelper;1",
                          "nsIClipboardHelper");
@@ -32,6 +31,8 @@ loader.lazyImporter(this, "VariablesView", "resource:///modules/devtools/Variabl
 loader.lazyImporter(this, "VariablesViewController", "resource:///modules/devtools/VariablesViewController.jsm");
 loader.lazyImporter(this, "PluralForm", "resource://gre/modules/PluralForm.jsm");
 loader.lazyImporter(this, "gDevTools", "resource:///modules/devtools/gDevTools.jsm");
+
+let parseMessage = require("./parser");
 
 const STRINGS_URI = "chrome://browser/locale/devtools/webconsole.properties";
 let l10n = new WebConsoleUtils.l10n(STRINGS_URI);
@@ -203,8 +204,6 @@ function WebConsoleFrame(aWebConsoleOwner)
   this.filterPrefs = {};
 
   this.output = new ConsoleOutput(this);
-
-  this.messages = [];
 
   this._toggleFilter = this._toggleFilter.bind(this);
   this._onPanelSelected = this._onPanelSelected.bind(this);
@@ -505,7 +504,7 @@ WebConsoleFrame.prototype = {
     let doc = this.document;
 
     this.filterBox = doc.querySelector(".hud-filter-box");
-    this.outputNode = doc.getElementById("output-container");
+    this.outputNode = doc.getElementById("output-container-mount");
     this.completeNode = doc.querySelector(".jsterm-complete-node");
     this.inputNode = doc.querySelector(".jsterm-input-node");
 
@@ -2041,6 +2040,7 @@ WebConsoleFrame.prototype = {
         this.output.addMessage(marker);
       }
       else {
+        this.window.reactClearMessages();
         this.jsterm.clearOutput();
       }
     }
@@ -2076,26 +2076,20 @@ WebConsoleFrame.prototype = {
    */
   outputMessage: function WCF_outputMessage(aCategory, aMethodOrNode, aArguments)
   {
-    if (!this._outputQueue.length) {
-      // If the queue is empty we consider that now was the last output flush.
-      // This avoid an immediate output flush when the timer executes.
-      this._lastOutputFlush = Date.now();
-    }
+    // if (!this._outputQueue.length) {
+    //   // If the queue is empty we consider that now was the last output flush.
+    //   // This avoid an immediate output flush when the timer executes.
+    //   this._lastOutputFlush = Date.now();
+    // }
 
-    this._outputQueue.push([aCategory, aMethodOrNode, aArguments]);
-
+    //this._outputQueue.push([aCategory, aMethodOrNode, aArguments]);
     //this._initOutputTimer();
 
     if(aCategory === CATEGORY_WEBDEV &&
        aMethodOrNode === this.logConsoleAPIMessage) {
       let msg = aArguments[0];
       if(msg.level === 'log') {
-        //this.messages.push(this.logConsoleAPIMessage.apply(this,
-        //aArguments));
-
-        this.window.React.render(this.window.OutputElement({
-          messages: this.messages
-        }), this.outputNode);
+        this.window.reactAddMessage(parseMessage(msg));
       }
     }
   },
@@ -2433,12 +2427,14 @@ WebConsoleFrame.prototype = {
    */
   pruneOutputIfNecessary: function WCF_pruneOutputIfNecessary(aCategory)
   {
-    let logLimit = Utils.logLimitForCategory(aCategory);
-    let messageNodes = this.outputNode.querySelectorAll(".message[category=" +
-                       CATEGORY_CLASS_FRAGMENTS[aCategory] + "]");
-    let n = Math.max(0, messageNodes.length - logLimit);
-    [...messageNodes].slice(0, n).forEach(this.removeOutputMessage, this);
-    return n;
+    // let logLimit = Utils.logLimitForCategory(aCategory);
+    // let messageNodes = this.outputNode.querySelectorAll(".message[category=" +
+    //                    CATEGORY_CLASS_FRAGMENTS[aCategory] + "]");
+    // let n = Math.max(0, messageNodes.length - logLimit);
+    // [...messageNodes].slice(0, n).forEach(this.removeOutputMessage,
+    // this);
+    return 0;
+    //return n;
   },
 
   /**
@@ -3845,9 +3841,9 @@ JSTerm.prototype = {
     let hud = this.hud;
     let outputNode = hud.outputNode;
     let node;
-    while ((node = outputNode.firstChild)) {
-      hud.removeOutputMessage(node);
-    }
+    //while ((node = outputNode.firstChild)) {
+      //hud.removeOutputMessage(node);
+    //}
 
     hud.groupDepth = 0;
     hud._outputQueue.forEach(hud._destroyItem, hud);
