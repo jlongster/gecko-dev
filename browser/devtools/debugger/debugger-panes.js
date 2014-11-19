@@ -133,28 +133,13 @@ SourcesView.prototype = Heritage.extend(WidgetMethods, {
    *        - staged: true to stage the item to be appended later
    */
   addSource: function(aSource, aOptions = {}) {
-    let fullUrl = aSource.url;
-    let label;
-    let group;
-    let unicodeUrl;
+    if (!(aSource.url || aSource.introductionUrl)) {
+      // These would be most likely eval scripts introduced in inline
+      // JavaScript in HTML, and we don't show those yet (bug 1097873)
+      return;
+    }
 
-    if (fullUrl) {
-      let url = fullUrl.split(" -> ").pop();
-      label = aSource.addonPath ? aSource.addonPath : SourceUtils.getSourceLabel(url);
-      group = aSource.addonID ? aSource.addonID : SourceUtils.getSourceGroup(url);
-      unicodeUrl = NetworkHelper.convertToUnicode(unescape(fullUrl));
-    }
-    else {
-      if (aSource.introductionUrl) {
-        label = SourceUtils.getSourceLabel(aSource.introductionUrl) + ' > eval';
-        group = SourceUtils.getSourceGroup(aSource.introductionUrl);
-      }
-      else {
-        label = "unknown";
-        group = "unknown";
-      }
-      unicodeUrl = "eval";
-    }
+    let { label, group, unicodeUrl } = this._parseUrl(aSource);
 
     let contents = document.createElement("label");
     contents.className = "plain dbg-source-item";
@@ -179,6 +164,22 @@ SourcesView.prototype = Heritage.extend(WidgetMethods, {
         source: aSource
       }
     });
+  },
+
+  _parseUrl: function(aSource) {
+    let fullUrl = aSource.url || aSource.introductionUrl;
+    let url = fullUrl.split(" -> ").pop();
+    let label = aSource.addonPath ? aSource.addonPath : SourceUtils.getSourceLabel(url);
+
+    if (aSource.introductionUrl) {
+      label += ' > eval';
+    }
+
+    return {
+      label: label,
+      group: aSource.addonID ? aSource.addonID : SourceUtils.getSourceGroup(url),
+      unicodeUrl: NetworkHelper.convertToUnicode(unescape(fullUrl))
+    };
   },
 
   /**
@@ -593,7 +594,7 @@ SourcesView.prototype = Heritage.extend(WidgetMethods, {
    */
   getActorForLocation: function(aLocation) {
     if (aLocation.url) {
-      for(var item of this) {
+      for (var item of this) {
         let source = item.attachment.source;
 
         if (aLocation.url === source.url) {
@@ -1356,7 +1357,7 @@ TracerView.prototype = Heritage.extend(WidgetMethods, {
     const data = traceItem.attachment.trace;
     const { location: { url, line } } = data;
     DebuggerView.setEditorLocation(
-      DebuggerView.Sources.getActorForLocation({ url: url }),
+      DebuggerView.Sources.getActorForLocation({ url }),
       line,
       { noDebug: true }
     );

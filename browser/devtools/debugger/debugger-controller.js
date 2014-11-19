@@ -665,7 +665,6 @@ StackFrames.prototype = {
     // Make sure all the previous stackframes are removed before re-adding them.
     DebuggerView.StackFrames.empty();
 
-    // TODO: need to be backwards compatible
     for (let frame of this.activeThread.cachedFrames) {
       let { depth, source, where: { line } } = frame;
 
@@ -2001,7 +2000,7 @@ Breakpoints.prototype = {
         let actualLoc = aResponse.actualLocation;
         aBreakpointClient.requestedLocation = aLocation;
         aBreakpointClient.location = actualLoc;
-        aBreakpointClient.location.actor = actualLoc.source && actualLoc.source.actor;
+        aBreakpointClient.location.actor = actualLoc.source ? actualLoc.source.actor : null;
       }
 
       // Preserve information about the breakpoint's line text, to display it

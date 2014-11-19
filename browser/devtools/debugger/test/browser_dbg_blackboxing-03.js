@@ -55,4 +55,5 @@ registerCleanupFunction(function() {
   gPanel = null;
   gDebugger = null;
   gFrames = null;
+  gSources = null;
 });

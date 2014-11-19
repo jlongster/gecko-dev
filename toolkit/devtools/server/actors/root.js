@@ -143,7 +143,7 @@ RootActor.prototype = {
     conditionalBreakpoints: true,
     // Whether the server supports full source actors (breakpoints on
     // eval scripts, etc)
-    sourceActors: true,
+    debuggerSourceActors: true,
     bulk: true,
     // Whether the style rule actor implements the modifySelector method
     // that modifies the rule's selector

@@ -57,6 +57,7 @@ Object.defineProperty(this, "WebConsoleClient", {
 
 Components.utils.import("resource://gre/modules/devtools/DevToolsUtils.jsm");
 this.makeInfallible = DevToolsUtils.makeInfallible;
+this.values = DevToolsUtils.values;
 
 let LOG_PREF = "devtools.debugger.log";
 let VERBOSE_PREF = "devtools.debugger.log.verbose";
@@ -1732,7 +1733,20 @@ ThreadClient.prototype = {
         return;
       }
 
+      let threadGrips = values(this._threadGrips);
+
       for each (let frame in aResponse.frames) {
+        if (!frame.where.source) {
+          // Older servers use urls instead, so we need to resolve
+          // them to source actors
+          for (var grip of threadGrips) {
+            if (grip instanceof SourceClient &&
+               grip.url === frame.url) {
+              frame.where.source = grip._form;
+            }
+          }
+        }
+
         this._frameCache[frame.depth] = frame;
       }
 
@@ -2352,7 +2366,7 @@ SourceClient.prototype = {
 
       // Backwards compatibility: send the breakpoint request to the
       // thread if the server doesn't support Debugger.Source actors
-      if (!root.traits.sourceActors) {
+      if (!root.traits.debuggerSourceActors) {
         packet.to = this._activeThread.actor;
         packet.location.url = this.url;
       }
@@ -2396,7 +2410,6 @@ SourceClient.prototype = {
             : noop;
 
       doSetBreakpoint(cleanUp);
-
     })
   }
 };
@@ -2406,6 +2419,8 @@ SourceClient.prototype = {
  *
  * @param aClient DebuggerClient
  *        The debugger client parent.
+ * @param aSourceClient SourceClient
+ *        The source where this breakpoint exists
  * @param aActor string
  *        The actor ID for this breakpoint.
  * @param aLocation object

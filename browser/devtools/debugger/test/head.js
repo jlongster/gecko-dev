@@ -263,13 +263,9 @@ function waitForEditorLocationSet(aPanel) {
 
 function ensureSourceIs(aPanel, aUrlOrSource, aWaitFlag = false) {
   let sources = aPanel.panelWin.DebuggerView.Sources;
-  let item = sources.getItemForAttachment(a => {
-    return (a.source &&
-            (a.source.url.indexOf(aUrlOrSource) !== -1 ||
-             a.source.actor === aUrlOrSource));
-  });
 
-  if (item) {
+  if (sources.selectedValue === aUrlOrSource ||
+      sources.selectedItem.attachment.source.url.contains(aUrlOrSource)) {
     ok(true, "Expected source is shown: " + aUrlOrSource);
     return promise.resolve(null);
   }

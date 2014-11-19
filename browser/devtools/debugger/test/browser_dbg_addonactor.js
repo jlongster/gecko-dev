@@ -25,8 +25,8 @@ function test() {
       .then(attachAddonThread)
       .then(testDebugger)
       .then(testSources)
-      .then(uninstallAddon)
       .then(closeConnection)
+      .then(uninstallAddon)
       .then(finish)
       .then(null, aError => {
         ok(false, "Got an error: " + aError.message + "\n" + aError.stack);

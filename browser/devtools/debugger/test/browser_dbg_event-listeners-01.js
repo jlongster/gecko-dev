@@ -99,7 +99,12 @@ function testEventListeners(aThreadClient) {
         ok(func, "There is a function property.");
         is(func.type, "object", "The function form is of type 'object'.");
         is(func.class, "Function", "The function form is of class 'Function'.");
-        is(func.url, TAB_URL, "The function url is correct.");
+
+        // The onchange handler is an inline string that doesn't have
+        // a URL because it's basically eval'ed
+        if (l.type !== 'change') {
+          is(func.url, TAB_URL, "The function url is correct.");
+        }
 
         is(l.allowsUntrusted, true,
           "'allowsUntrusted' property has the right value.");
