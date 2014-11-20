@@ -41,13 +41,13 @@ function performTest() {
     testBottomFrame(4);
 
     yield performStep("StepIn");
-    testTopFrame(2);
+    testTopFrame(1);
 
     yield selectBottomFrame();
     testBottomFrame(4);
 
     yield performStep("StepOut");
-    testTopFrame(2);
+    testTopFrame(1);
 
     yield resumeDebuggerThenCloseAndFinish(gPanel);
   });

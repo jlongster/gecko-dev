@@ -1163,6 +1163,8 @@ SourceScripts.prototype = {
       return;
     }
 
+    dump('JWL _onNewSource ' + aPacket.source.url + '\n');
+
     // Add the source in the debugger view sources container.
     DebuggerView.Sources.addSource(aPacket.source, { staged: false });
 
@@ -1208,6 +1210,7 @@ SourceScripts.prototype = {
       return;
     }
 
+    dump('JWL _onSourcesAdded ' + aResponse.sources.length + '\n');
     if (aResponse.sources.length === 0) {
       DebuggerView.Sources.emptyText = L10N.getStr("noSourcesText");
       window.emit(EVENTS.SOURCES_ADDED);

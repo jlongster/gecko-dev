@@ -1468,6 +1468,11 @@ ThreadActor.prototype = {
       }
     }
 
+    dump('JWL sourcesToScripts ' + sourcesToScripts.size + '\n');
+    for(let script of sourcesToScripts.values()) {
+      dump('JWL _discoverSources ' + script.url + '\n');
+    }
+
     return all([this.sources.sourcesForScript(script)
                 for (script of sourcesToScripts.values())]);
   },
@@ -2946,7 +2951,7 @@ SourceActor.prototype = {
       return actor;
     }
 
-    storedBp.actor = actor = new BreakpointActor(this, {
+    storedBp.actor = actor = new BreakpointActor(this.threadActor, {
       sourceActor: this,
       line: location.line,
       column: location.column,
@@ -2980,7 +2985,7 @@ SourceActor.prototype = {
       for (let offsetMapping of mappings) {
         script.setBreakpoint(offsetMapping.offset, actor);
       }
-      actor.addScript(script, this);
+      actor.addScript(script, this.threadActor);
     }
 
     return {
@@ -3127,6 +3132,10 @@ SourceActor.prototype = {
         };
       } else {
         actor.location = actualLocation;
+        actor.location = {
+          sourceActor: this,
+          line: actualLocation.line
+        };
         this.breakpointStore.moveBreakpoint(location, actualLocation);
       }
     }
@@ -3158,7 +3167,7 @@ SourceActor.prototype = {
       for (let offset of offsets) {
         script.setBreakpoint(offset, actor);
       }
-      actor.addScript(script, this);
+      actor.addScript(script, this.threadActor);
     }
   },
 
@@ -5381,6 +5390,7 @@ ThreadSources.prototype = {
     // breakpoints.
     if (!source || !this._sourceMaps.has(source)) {
       try {
+        dump('JWL ThreadSources.source ' + (source && source.text) + ' ' + isInlineSource + ' ' + originalUrl + '\n');
         this._onNewSource(actor);
       } catch (e) {
         reportError(e);

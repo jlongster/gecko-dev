@@ -10,7 +10,7 @@ let { Services } = Cu.import("resource://gre/modules/Services.jsm", {});
 // debug a test in your try runs. Both the debugger server and frontend will
 // be affected by this pref.
 let gEnableLogging = Services.prefs.getBoolPref("devtools.debugger.log");
-Services.prefs.setBoolPref("devtools.debugger.log", false);
+Services.prefs.setBoolPref("devtools.debugger.log", true);
 
 let { Task } = Cu.import("resource://gre/modules/Task.jsm", {});
 let { Promise: promise } = Cu.import("resource://gre/modules/devtools/deprecated-sync-thenables.js", {});
@@ -264,6 +264,7 @@ function waitForEditorLocationSet(aPanel) {
 function ensureSourceIs(aPanel, aUrlOrSource, aWaitFlag = false) {
   let sources = aPanel.panelWin.DebuggerView.Sources;
 
+  dump('JWL ensureSourceIs ' + aUrlOrSource + '\n');
   if (sources.selectedValue === aUrlOrSource ||
       sources.selectedItem.attachment.source.url.contains(aUrlOrSource)) {
     ok(true, "Expected source is shown: " + aUrlOrSource);
@@ -1000,7 +1001,10 @@ function getSourceURL(aSources, aActor) {
 }
 
 function getSourceActor(aSources, aURL) {
-  let item = aSources.getItemForAttachment(a => a.source.url === aURL);
+  let item = aSources.getItemForAttachment(a => {
+    dump('JWL getSourceActor ' + a.source.url + ' ' + aURL + '\n');
+    return a.source.url === aURL
+  });
   return item && item.value;
 }
 
