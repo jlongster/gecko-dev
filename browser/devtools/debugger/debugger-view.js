@@ -31,6 +31,8 @@ const EDITOR_VARIABLE_HOVER_DELAY = 750; // ms
 const EDITOR_VARIABLE_POPUP_POSITION = "topcenter bottomleft";
 const TOOLBAR_ORDER_POPUP_POSITION = "topcenter bottomleft";
 
+const EventListenersView = require('./modules/views/event-listeners-view');
+
 /**
  * Object defining the debugger view components.
  */
@@ -579,7 +581,7 @@ let DebuggerView = {
    */
   _onInstrumentsPaneTabSelect: function() {
     if (this._instrumentsPane.selectedTab.id == "events-tab") {
-      DebuggerController.Breakpoints.DOM.scheduleEventListenersFetch();
+      DebuggerController.Breakpoints.DOM.fetchEventListeners();
     }
   },
 
@@ -842,3 +844,5 @@ ResultsPanelContainer.prototype = Heritage.extend(WidgetMethods, {
   left: 0,
   top: 0
 });
+
+DebuggerView.EventListeners = new EventListenersView(DebuggerController);

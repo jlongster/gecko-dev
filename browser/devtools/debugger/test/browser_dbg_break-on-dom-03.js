@@ -44,7 +44,7 @@ function test() {
       is(gEvents.getCheckedEvents().toString(), "",
         "The getCheckedEvents() method returns the correct stuff.");
 
-      yield ensureThreadClientState(aPanel, "resumed");
+      yield waitForThreadEvents(aPanel, "resumed");
       yield closeDebuggerAndFinish(aPanel);
     });
 

@@ -58,7 +58,7 @@ function test() {
       testEventGroup("mouseEvents", false);
       testEventArrays("change,click,keydown,keyup", "");
 
-      yield ensureThreadClientState(aPanel, "resumed");
+      yield ensureThreadClientState(aPanel, "attached");
       yield closeDebuggerAndFinish(aPanel);
     });
 

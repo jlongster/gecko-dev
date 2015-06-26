@@ -10,6 +10,10 @@ function EventListenersView(DebuggerController) {
   dumpn("EventListenersView was instantiated");
 
   this.Breakpoints = DebuggerController.Breakpoints;
+  DebuggerController.Breakpoints.DOM.onChange(
+    'listeners',
+    listeners => this.renderListeners(listeners)
+  );
 
   this._onCheck = this._onCheck.bind(this);
   this._onClick = this._onClick.bind(this);
@@ -45,6 +49,15 @@ EventListenersView.prototype = Heritage.extend(WidgetMethods, {
 
     this.widget.removeEventListener("check", this._onCheck, false);
     this.widget.removeEventListener("click", this._onClick, false);
+  },
+
+  renderListeners: function(listeners) {
+    listeners.forEach(listener => {
+      this.addListener(listener, { staged: true });
+    });
+
+    // Flushes all the prepared events into the event listeners container.
+    this.commit();
   },
 
   /**
@@ -241,7 +254,8 @@ EventListenersView.prototype = Heritage.extend(WidgetMethods, {
   _onCheck: function({ detail: { description, checked }, target }) {
     if (description == "item") {
       this.getItemForElement(target).attachment.checkboxState = checked;
-      this.Breakpoints.DOM.scheduleEventBreakpointsUpdate();
+
+      actions.updateEventBreakpoints(this.getCheckedEvents());
       return;
     }
 
@@ -271,4 +285,4 @@ EventListenersView.prototype = Heritage.extend(WidgetMethods, {
   _inNativeCodeString: ""
 });
 
-DebuggerView.EventListeners = new EventListenersView(DebuggerController);
+module.exports = EventListenersView;

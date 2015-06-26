@@ -103,7 +103,15 @@ Cu.import("resource:///modules/devtools/VariablesView.jsm");
 Cu.import("resource:///modules/devtools/VariablesViewController.jsm");
 Cu.import("resource:///modules/devtools/ViewHelpers.jsm");
 
-const require = Cu.import("resource://gre/modules/devtools/Loader.jsm", {}).devtools.require;
+Cu.import("resource://gre/browser/modules/devtools/debugger/debugger-main.js");
+const require = makeRequire(this);
+
+const fluxify = require('./modules/fluxify/index');
+const dispatcher = fluxify.createDispatcher();
+const actions = dispatcher.wrapActions(require('./modules/actions'));
+const constants = require('./modules/constants');
+const Store = fluxify.Store;
+
 const promise = require("devtools/toolkit/deprecated-sync-thenables");
 const Editor = require("devtools/sourceeditor/editor");
 const DebuggerEditor = require("devtools/sourceeditor/debugger.js");
@@ -328,7 +336,9 @@ let DebuggerController = {
       this.SourceScripts.connect();
 
       if (aThreadClient.paused) {
-        aThreadClient.resume(this._ensureResumptionOrder);
+        aThreadClient.resume(res => {
+          this._ensureResumptionOrder(res)
+        });
       }
 
       deferred.resolve();
@@ -1293,7 +1303,7 @@ SourceScripts.prototype = {
 
     // Make sure the events listeners are up to date.
     if (DebuggerView.instrumentsPaneTab == "events-tab") {
-      DebuggerController.Breakpoints.DOM.scheduleEventListenersFetch();
+      DebuggerController.Breakpoints.DOM.fetchEventListeners();
     }
 
     // Signal that a new source has been added.
@@ -1789,6 +1799,7 @@ Tracer.prototype = {
  * Handles breaking on event listeners in the currently debugged target.
  */
 function EventListeners() {
+  dispatcher.registerStore('EventListeners', Store.decorate(this));
 }
 
 EventListeners.prototype = {
@@ -1803,22 +1814,18 @@ EventListeners.prototype = {
    * will automatically pause the debuggee. The respective events are
    * retrieved from the UI.
    */
-  scheduleEventBreakpointsUpdate: function() {
-    // Make sure we're not sending a batch of closely repeated requests.
-    // This can easily happen when toggling all events of a certain type.
-    setNamedTimeout("event-breakpoints-update", 0, () => {
-      this.activeEventNames = DebuggerView.EventListeners.getCheckedEvents();
-      gThreadClient.pauseOnDOMEvents(this.activeEventNames);
-
+  [constants.UPDATE_EVENT_BREAKPOINTS]: function(payload) {
+    this.activeEventNames = payload.eventNames;
+    gThreadClient.pauseOnDOMEvents(this.activeEventNames, function() {
       // Notify that event breakpoints were added/removed on the server.
       window.emit(EVENTS.EVENT_BREAKPOINTS_UPDATED);
     });
   },
 
   /**
-   * Schedules fetching the currently attached event listeners from the debugee.
+   * Fetches the currently attached event listeners from the debugee.
    */
-  scheduleEventListenersFetch: function() {
+  fetchEventListeners: function() {
     // Make sure we're not sending a batch of closely repeated requests.
     // This can easily happen whenever new sources are fetched.
     setNamedTimeout("event-listeners-fetch", FETCH_EVENT_LISTENERS_DELAY, () => {
@@ -1868,6 +1875,7 @@ EventListeners.prototype = {
 
       // Add all the listeners in the debugger view event linsteners container.
       let fetchedDefinitions = new Map();
+      let listeners = [];
       for (let listener of aResponse.listeners) {
         let definitionSite;
         if (fetchedDefinitions.has(listener.function.actor)) {
@@ -1877,18 +1885,16 @@ EventListeners.prototype = {
           fetchedDefinitions.set(listener.function.actor, definitionSite);
         }
         listener.function.url = definitionSite;
-        DebuggerView.EventListeners.addListener(listener, { staged: true });
+        listeners.push(listener);
       }
       fetchedDefinitions.clear();
-
-      // Flushes all the prepared events into the event listeners container.
-      DebuggerView.EventListeners.commit();
+      this.emitChange('listeners', listeners);
 
       // Now that we are done, schedule a new update if necessary.
       this._parsingListeners = false;
       if (this._eventListenersUpdateNeeded) {
         this._eventListenersUpdateNeeded = false;
-        this.scheduleEventListenersFetch();
+        this.fetchEventListeners();
       }
 
       // Notify that event listeners were fetched and shown in the view,

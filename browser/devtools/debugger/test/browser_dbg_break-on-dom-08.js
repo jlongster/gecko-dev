@@ -31,7 +31,7 @@ function test() {
       let updated = waitForDebuggerEvents(aPanel, gDebugger.EVENTS.EVENT_BREAKPOINTS_UPDATED);
       EventUtils.sendMouseEvent({ type: "click" }, getItemCheckboxNode(1), gDebugger);
       yield updated;
-      yield ensureThreadClientState(aPanel, "resumed");
+      yield ensureThreadClientState(aPanel, "attached");
 
       let paused = waitForCaretAndScopes(aPanel, 48);
       generateMouseClickInTab(gTab, "content.document.body");
