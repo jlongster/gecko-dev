@@ -8,6 +8,7 @@ EXTRA_JS_MODULES.devtools.shared.fluxify += [
     'bindActionCreators.js',
     'dispatcher.js',
     'logMiddleware.js',
+    'promiseMiddleware.js',
     'thunkMiddleware.js',
     'waitUntilService.js'
 ]

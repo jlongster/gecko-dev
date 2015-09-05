@@ -6,12 +6,17 @@
 const { promiseInvoke } = require("devtools/async-utils");
 const { reportException } = require("devtools/toolkit/DevToolsUtils");
 
+// RDP utils
+
 function rdpInvoke(client, method, ...args) {
   return promiseInvoke(client, method, ...args)
     .then((packet) => {
       let { error, message } = packet;
       if (error) {
-        throw new Error(error + ": " + message);
+        const err = new Error(error + ": " + message);
+        err.rdpError = error;
+        err.rdpMessage = message;
+        throw err;
       }
 
       return packet;
@@ -42,4 +47,12 @@ function asPaused(client, func) {
   }
 }
 
-module.exports = { rdpInvoke, asPaused };
+function handleError(err) {
+  reportException("promise", err.toString());
+}
+
+module.exports = {
+  rdpInvoke,
+  asPaused,
+  handleError
+};

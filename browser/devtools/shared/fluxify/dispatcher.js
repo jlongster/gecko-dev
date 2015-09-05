@@ -150,7 +150,7 @@ function createDispatcher(stores) {
                       "\" does not have an `update` function");
     }
 
-    state[name] = store.update(undefined, {});
+    state[name] = store.update(undefined, { type: "@@dispatch/init" });
   });
 
   function getState() {
@@ -196,8 +196,11 @@ function createDispatcher(stores) {
   function flushChanges() {
     enqueuedChanges.forEach(([storeName, dataName, payload]) => {
       if (listeners[storeName]) {
-        listeners[storeName].forEach(listener => {
-          listener(payload, dataName, storeName);
+        listeners[storeName] = listeners[storeName].filter(listener => {
+          // Listeners can return true to be removed from the
+          // registered listeners. Use this when you were waiting for
+          // a specific state and no longer need to listen (rare).
+          return !listener(payload, dataName, storeName);
         });
       }
     });
@@ -232,6 +235,7 @@ function createDispatcher(stores) {
     }
 
     flushChanges();
+    return action;
   }
 
   return {

@@ -18,7 +18,7 @@ function EventListenersView(dispatcher, DebuggerController) {
   this.Breakpoints = DebuggerController.Breakpoints;
 
   dispatcher.onChange({
-    "eventListeners": { "listeners": this.renderListeners }
+    eventListeners: { "listeners": this.renderListeners }
   }, this);
 
   this._onCheck = this._onCheck.bind(this);

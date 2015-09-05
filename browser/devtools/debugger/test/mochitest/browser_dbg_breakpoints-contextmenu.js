@@ -7,28 +7,26 @@
 
 const TAB_URL = EXAMPLE_URL + "doc_script-switching-01.html";
 
-function test() {
+const test = Task.async(function*() {
   // Debug test slaves are a bit slow at this test.
   requestLongerTimeout(2);
 
   let gTab, gPanel, gDebugger;
-  let gSources, gBreakpoints;
+  let gSources, gBreakpoints, gDispatcher;
+  let getBreakpoints, disableBreakpoint, enableBreakpoint;
 
-  initDebugger(TAB_URL).then(([aTab,, aPanel]) => {
-    gTab = aTab;
-    gPanel = aPanel;
-    gDebugger = gPanel.panelWin;
-    gSources = gDebugger.DebuggerView.Sources;
-    gBreakpoints = gDebugger.DebuggerController.Breakpoints;
+  const [gTab,, gPanel ] = yield initDebugger(TAB_URL);
+  const gDebugger = gPanel.panelWin;
+  const gSources = gDebugger.DebuggerView.Sources;
+  const gBreakpoints = gDebugger.DebuggerController.Breakpoints;
 
-    waitForSourceShown(gPanel, "-01.js")
-      .then(performTestWhileNotPaused)
-      .then(performTestWhilePaused)
-      .then(() => resumeDebuggerThenCloseAndFinish(gPanel))
-      .then(null, aError => {
-        ok(false, "Got an error: " + aError.message + "\n" + aError.stack);
-      });
-  });
+  waitForSourceShown(gPanel, "-01.js")
+    .then(performTestWhileNotPaused)
+    .then(performTestWhilePaused)
+    .then(() => resumeDebuggerThenCloseAndFinish(gPanel))
+    .then(null, aError => {
+      ok(false, "Got an error: " + aError.message + "\n" + aError.stack);
+    });
 
   function addBreakpoints() {
     return promise.resolve(null)
@@ -316,10 +314,10 @@ function test() {
   }
 
   function disableOthers() {
-    gSources._onDisableOthers(gSources._selectedBreakpointItem.attachment);
+    gSources._onDisableOthers();
   }
   function enableOthers() {
-    gSources._onEnableOthers(gSources._selectedBreakpointItem.attachment);
+    gSources._onEnableOthers();
   }
   function disableAll() {
     gSources._onDisableAll();
@@ -330,4 +328,4 @@ function test() {
   function deleteAll() {
     gSources._onDeleteAll();
   }
-}
+});

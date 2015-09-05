@@ -132,9 +132,17 @@ function addBreakpoint(ctx, line, cond) {
     let meta = dbginfo.get(ed);
     let info = cm.lineInfo(line);
 
+    // The line does not exist in the editor. This is harmless, the
+    // architecture calling this assumes the editor will handle this
+    // gracefully, and make sure breakpoints exist when they need to.
+    if(!info) {
+      return;
+    }
+
     ed.addMarker(line, "breakpoints", "breakpoint");
     meta.breakpoints[line] = { condition: cond };
 
+    // TODO(jwl): why is `info` null when breaking on page reload?
     info.handle.on("delete", function onDelete() {
       info.handle.off("delete", onDelete);
       meta.breakpoints[info.line] = null;

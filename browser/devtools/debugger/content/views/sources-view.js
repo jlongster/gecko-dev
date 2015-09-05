@@ -3,30 +3,50 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 "use strict";
 
-// Maps known URLs to friendly source group names and put them at the
-// bottom of source list.
-const KNOWN_SOURCE_GROUPS = {
-  "Add-on SDK": "resource://gre/modules/commonjs/",
-};
-
-KNOWN_SOURCE_GROUPS[L10N.getStr("anonymousSourcesLabel")] = "anonymous";
+const utils = require('../utils');
+const {
+  getSelectedSource,
+  getSourceByURL,
+  getBreakpoint,
+  getBreakpoints,
+  makeLocationId
+} = require('../queries');
+const actions = Object.assign(
+  {},
+  require('../stores/sources').actions,
+  require('../stores/breakpoints').actions
+);
+const bindActionCreators = require('devtools/shared/fluxify/bindActionCreators');
 
 /**
  * Functions handling the sources UI.
  */
-function SourcesView(DebuggerController, DebuggerView) {
+function SourcesView(dispatcher, DebuggerView) {
   dumpn("SourcesView was instantiated");
 
-  this.Breakpoints = DebuggerController.Breakpoints;
-  this.SourceScripts = DebuggerController.SourceScripts;
+  dispatcher.onChange({
+    sources: {
+      "sources": this.renderSources,
+      "source": this.renderSource,
+      "blackboxed": this.renderBlackBoxed,
+      "source-selected": this.renderSourceSelected
+    },
+    breakpoints: {
+      "breakpoint-updated": bp => this.renderBreakpoint(bp),
+      "breakpoint-enabled": bp => this.renderBreakpoint(bp),
+      "breakpoint-disabled": bp => this.renderBreakpoint(bp),
+      "breakpoint-removed": bp => this.renderBreakpoint(bp, true)
+    }
+  }, this);
+
+  this.getState = dispatcher.getState;
+  this.actions = bindActionCreators(actions, dispatcher.dispatch);
   this.DebuggerView = DebuggerView;
 
   this.togglePrettyPrint = this.togglePrettyPrint.bind(this);
   this.toggleBlackBoxing = this.toggleBlackBoxing.bind(this);
   this.toggleBreakpoints = this.toggleBreakpoints.bind(this);
 
-  this._onEditorLoad = this._onEditorLoad.bind(this);
-  this._onEditorUnload = this._onEditorUnload.bind(this);
   this._onEditorCursorActivity = this._onEditorCursorActivity.bind(this);
   this._onSourceSelect = this._onSourceSelect.bind(this);
   this._onStopBlackBoxing = this._onStopBlackBoxing.bind(this);
@@ -53,6 +73,7 @@ SourcesView.prototype = Heritage.extend(WidgetMethods, {
       showArrows: true
     });
 
+    this._preferredSourceURL = null;
     this._unnamedSourceIndex = 0;
     this.emptyText = L10N.getStr("noSourcesText");
     this._blackBoxCheckboxTooltip = L10N.getStr("blackBoxCheckboxTooltip");
@@ -73,9 +94,8 @@ SourcesView.prototype = Heritage.extend(WidgetMethods, {
       this._prettyPrintButton.removeAttribute("hidden");
     }
 
-    window.on(EVENTS.EDITOR_LOADED, this._onEditorLoad, false);
-    window.on(EVENTS.EDITOR_UNLOADED, this._onEditorUnload, false);
     this.widget.addEventListener("select", this._onSourceSelect, false);
+
     this._stopBlackBoxButton.addEventListener("click", this._onStopBlackBoxing, false);
     this._cbPanel.addEventListener("popupshowing", this._onConditionalPopupShowing, false);
     this._cbPanel.addEventListener("popupshown", this._onConditionalPopupShown, false);
@@ -110,8 +130,6 @@ SourcesView.prototype = Heritage.extend(WidgetMethods, {
   destroy: function() {
     dumpn("Destroying the SourcesView");
 
-    window.off(EVENTS.EDITOR_LOADED, this._onEditorLoad, false);
-    window.off(EVENTS.EDITOR_UNLOADED, this._onEditorUnload, false);
     this.widget.removeEventListener("select", this._onSourceSelect, false);
     this._stopBlackBoxButton.removeEventListener("click", this._onStopBlackBoxing, false);
     this._cbPanel.removeEventListener("popupshowing", this._onConditionalPopupShowing, false);
@@ -155,6 +173,39 @@ SourcesView.prototype = Heritage.extend(WidgetMethods, {
     // if already inserted.
     if (this.containsValue(aUrl)) {
       this.selectedValue = aUrl;
+    }
+  },
+
+  sourcesDidUpdate: function() {
+    if(!getSelectedSource(this.getState())) {
+      let url = this._preferredSourceURL;
+      if(url) {
+        let source = getSourceByURL(this.getState(), url);
+        this.actions.selectSource(source);
+      }
+      else {
+        setNamedTimeout("new-source", NEW_SOURCE_DISPLAY_DELAY, () => {
+          if(this.itemCount > 0) {
+            this.actions.selectSource(this.getItemAtIndex(0).attachment.source);
+          }
+        });
+      }
+    }
+  },
+
+  renderSource: function(source) {
+    this.addSource(source, { staged: false });
+    for(let bp of getBreakpoints(this.getState())) {
+      if(bp.location.actor === source.actor) {
+        this.renderBreakpoint(bp);
+      }
+    }
+    this.sourcesDidUpdate();
+  },
+
+  renderSources: function(sources) {
+    if(sources.size === 0) {
+      this.emptyText = L10N.getStr("noSourcesText");
     }
   },
 
@@ -223,6 +274,22 @@ SourcesView.prototype = Heritage.extend(WidgetMethods, {
     };
   },
 
+  renderBreakpoint: function(breakpoint, removed) {
+    if(removed) {
+      if(this._getBreakpoint(breakpoint)) {
+        this._removeBreakpoint(breakpoint)
+      }
+    }
+    else {
+      if(this._getBreakpoint(breakpoint)) {
+        this._updateBreakpointStatus(breakpoint);
+      }
+      else {
+        this._addBreakpoint(breakpoint);
+      }
+    }
+  },
+
   /**
    * Adds a breakpoint to this sources container.
    *
@@ -231,21 +298,18 @@ SourcesView.prototype = Heritage.extend(WidgetMethods, {
    * @param object aOptions [optional]
    *        @see DebuggerController.Breakpoints.addBreakpoint
    */
-  addBreakpoint: function(aBreakpointClient, aOptions = {}) {
-    let { location, disabled } = aBreakpointClient;
+  _addBreakpoint: function(breakpoint, options = {}) {
+    let disabled = breakpoint.disabled;
+    let location = breakpoint.location;
 
-    // Make sure we're not duplicating anything. If a breakpoint at the
-    // specified source url and line already exists, just toggle it.
-    if (this.getBreakpoint(location)) {
-      this[disabled ? "disableBreakpoint" : "enableBreakpoint"](location);
+    // Get the source item to which the breakpoint should be attached.
+    let sourceItem = this.getItemByValue(location.actor);
+    if(!sourceItem) {
       return;
     }
 
-    // Get the source item to which the breakpoint should be attached.
-    let sourceItem = this.getItemByValue(this.getActorForLocation(location));
-
     // Create the element node and menu popup for the breakpoint item.
-    let breakpointArgs = Heritage.extend(aBreakpointClient, aOptions);
+    let breakpointArgs = Heritage.extend(breakpoint, options);
     let breakpointView = this._createBreakpointView.call(this, breakpointArgs);
     let contextMenu = this._createContextMenu.call(this, breakpointArgs);
 
@@ -265,11 +329,11 @@ SourcesView.prototype = Heritage.extend(WidgetMethods, {
       finalize: this._onBreakpointRemoved
     });
 
-    // Highlight the newly appended breakpoint child item if
-    // necessary.
-    if (aOptions.openPopup || !aOptions.noEditorUpdate) {
-      this.highlightBreakpoint(location, aOptions);
-    }
+    // TODO(jwl): do we need to make a "highlight breakpoint" action?
+    // where does this need to be fired from?
+    // if (options.openPopup || !options.noEditorUpdate) {
+    //   this.highlightBreakpoint(location, options);
+    // }
 
     window.emit(EVENTS.BREAKPOINT_SHOWN_IN_PANE);
   },
@@ -281,162 +345,67 @@ SourcesView.prototype = Heritage.extend(WidgetMethods, {
    * @param object aLocation
    *        @see DebuggerController.Breakpoints.addBreakpoint
    */
-  removeBreakpoint: function(aLocation) {
+  _removeBreakpoint: function(breakpoint) {
     // When a parent source item is removed, all the child breakpoint items are
     // also automagically removed.
-    let sourceItem = this.getItemByValue(aLocation.actor);
+    let sourceItem = this.getItemByValue(breakpoint.location.actor);
     if (!sourceItem) {
-      return;
-    }
-    let breakpointItem = this.getBreakpoint(aLocation);
-    if (!breakpointItem) {
       return;
     }
 
     // Clear the breakpoint view.
-    sourceItem.remove(breakpointItem);
+    sourceItem.remove(this._getBreakpoint(breakpoint));
 
     window.emit(EVENTS.BREAKPOINT_HIDDEN_IN_PANE);
   },
 
-  /**
-   * Returns the breakpoint at the specified source url and line.
-   *
-   * @param object aLocation
-   *        @see DebuggerController.Breakpoints.addBreakpoint
-   * @return object
-   *         The corresponding breakpoint item if found, null otherwise.
-   */
-  getBreakpoint: function(aLocation) {
-    return this.getItemForPredicate(aItem =>
-      aItem.attachment.actor == aLocation.actor &&
-      aItem.attachment.line == aLocation.line);
+  _getBreakpoint: function(bp) {
+    return this.getItemForPredicate(item => {
+      return item.attachment.actor === bp.location.actor &&
+        item.attachment.line === bp.location.line;
+    });
   },
 
   /**
-   * Returns all breakpoints for all sources.
+   * Updates a breakpoint.
    *
-   * @return array
-   *         The breakpoints for all sources if any, an empty array otherwise.
+   * @param object breakpoint
    */
-  getAllBreakpoints: function(aStore = []) {
-    return this.getOtherBreakpoints(undefined, aStore);
-  },
-
-  /**
-   * Returns all breakpoints which are not at the specified source url and line.
-   *
-   * @param object aLocation [optional]
-   *        @see DebuggerController.Breakpoints.addBreakpoint
-   * @param array aStore [optional]
-   *        A list in which to store the corresponding breakpoints.
-   * @return array
-   *         The corresponding breakpoints if found, an empty array otherwise.
-   */
-  getOtherBreakpoints: function(aLocation = {}, aStore = []) {
-    for (let source of this) {
-      for (let breakpointItem of source) {
-        let { actor, line } = breakpointItem.attachment;
-        if (actor != aLocation.actor || line != aLocation.line) {
-          aStore.push(breakpointItem);
-        }
-      }
-    }
-    return aStore;
-  },
-
-  /**
-   * Enables a breakpoint.
-   *
-   * @param object aLocation
-   *        @see DebuggerController.Breakpoints.addBreakpoint
-   * @param object aOptions [optional]
-   *        Additional options or flags supported by this operation:
-   *          - silent: pass true to not update the checkbox checked state;
-   *                    this is usually necessary when the checked state will
-   *                    be updated automatically (e.g: on a checkbox click).
-   * @return object
-   *         A promise that is resolved after the breakpoint is enabled, or
-   *         rejected if no breakpoint was found at the specified location.
-   */
-  enableBreakpoint: function(aLocation, aOptions = {}) {
-    let breakpointItem = this.getBreakpoint(aLocation);
+  _updateBreakpointStatus: function(breakpoint) {
+    let location = breakpoint.location;
+    let breakpointItem = this._getBreakpoint(getBreakpoint(this.getState(), location));
     if (!breakpointItem) {
       return promise.reject(new Error("No breakpoint found."));
     }
 
     // Breakpoint will now be enabled.
     let attachment = breakpointItem.attachment;
-    attachment.disabled = false;
+    attachment.disabled = breakpoint.disabled;
 
     // Update the corresponding menu items to reflect the enabled state.
     let prefix = "bp-cMenu-"; // "breakpoints context menu"
-    let identifier = this.Breakpoints.getIdentifier(attachment);
+    let identifier = makeLocationId(location);
     let enableSelfId = prefix + "enableSelf-" + identifier + "-menuitem";
     let disableSelfId = prefix + "disableSelf-" + identifier + "-menuitem";
-    document.getElementById(enableSelfId).setAttribute("hidden", "true");
-    document.getElementById(disableSelfId).removeAttribute("hidden");
+    let enableSelf = document.getElementById(enableSelfId);
+    let disableSelf = document.getElementById(disableSelfId);
 
-    // Update the breakpoint toggle button checked state.
-    this._toggleBreakpointsButton.removeAttribute("checked");
+    if (breakpoint.disabled) {
+      enableSelf.setAttribute("hidden", true);
+      disableSelf.removeAttribute("hidden");
+    }
+    else {
+      enableSelf.removeAttribute("hidden");
+      disableSelf.setAttribute("hidden", true);
 
-    // Update the checkbox state if necessary.
-    if (!aOptions.silent) {
-      attachment.view.checkbox.setAttribute("checked", "true");
+      // Update the breakpoint toggle button checked state.
+      this._toggleBreakpointsButton.removeAttribute("checked");
     }
 
-    return this.Breakpoints.addBreakpoint(aLocation, {
-      // No need to update the pane, since this method is invoked because
-      // a breakpoint's view was interacted with.
-      noPaneUpdate: true
-    });
-  },
-
-  /**
-   * Disables a breakpoint.
-   *
-   * @param object aLocation
-   *        @see DebuggerController.Breakpoints.addBreakpoint
-   * @param object aOptions [optional]
-   *        Additional options or flags supported by this operation:
-   *          - silent: pass true to not update the checkbox checked state;
-   *                    this is usually necessary when the checked state will
-   *                    be updated automatically (e.g: on a checkbox click).
-   * @return object
-   *         A promise that is resolved after the breakpoint is disabled, or
-   *         rejected if no breakpoint was found at the specified location.
-   */
-  disableBreakpoint: function(aLocation, aOptions = {}) {
-    let breakpointItem = this.getBreakpoint(aLocation);
-    if (!breakpointItem) {
-      return promise.reject(new Error("No breakpoint found."));
-    }
-
-    // Breakpoint will now be disabled.
-    let attachment = breakpointItem.attachment;
-    attachment.disabled = true;
-
-    // Update the corresponding menu items to reflect the disabled state.
-    let prefix = "bp-cMenu-"; // "breakpoints context menu"
-    let identifier = this.Breakpoints.getIdentifier(attachment);
-    let enableSelfId = prefix + "enableSelf-" + identifier + "-menuitem";
-    let disableSelfId = prefix + "disableSelf-" + identifier + "-menuitem";
-    document.getElementById(enableSelfId).removeAttribute("hidden");
-    document.getElementById(disableSelfId).setAttribute("hidden", "true");
-
-    // Update the checkbox state if necessary.
-    if (!aOptions.silent) {
-      attachment.view.checkbox.removeAttribute("checked");
-    }
-
-    return this.Breakpoints.removeBreakpoint(aLocation, {
-      // No need to update this pane, since this method is invoked because
-      // a breakpoint's view was interacted with.
-      noPaneUpdate: true,
-      // Mark this breakpoint as being "disabled", not completely removed.
-      // This makes sure it will not be forgotten across target navigations.
-      rememberDisabled: true
-    });
+    attachment.view.checkbox.setAttribute(
+      "checked",
+      breakpoint.disabled ? "false" : "true"
+    );
   },
 
   /**
@@ -450,13 +419,13 @@ SourcesView.prototype = Heritage.extend(WidgetMethods, {
    *          - noEditorUpdate: tells if you want to skip editor updates.
    */
   highlightBreakpoint: function(aLocation, aOptions = {}) {
-    let breakpointItem = this.getBreakpoint(aLocation);
-    if (!breakpointItem) {
+    let breakpoint = getBreakpoint(this.getState(), aLocation);
+    if (!breakpoint) {
       return;
     }
 
     // Breakpoint will now be selected.
-    this._selectBreakpoint(breakpointItem);
+    this._selectBreakpoint(breakpoint);
 
     // Update the editor location if necessary.
     if (!aOptions.noEditorUpdate) {
@@ -496,7 +465,7 @@ SourcesView.prototype = Heritage.extend(WidgetMethods, {
     * Display the message thrown on breakpoint condition
     */
   showBreakpointConditionThrownMessage: function(aLocation, aMessage = "") {
-    let breakpointItem = this.getBreakpoint(aLocation);
+    let breakpointItem = this._getBreakpoint(getBreakpoint(this.getState, aLocation));
     if (!breakpointItem) {
       return;
     }
@@ -509,11 +478,8 @@ SourcesView.prototype = Heritage.extend(WidgetMethods, {
    * Update the checked/unchecked and enabled/disabled states of the buttons in
    * the sources toolbar based on the currently selected source's state.
    */
-  updateToolbarButtonsState: function() {
-    const { source } = this.selectedItem.attachment;
-    const sourceClient = gThreadClient.source(source);
-
-    if (sourceClient.isBlackBoxed) {
+  updateToolbarButtonsState: function(source) {
+    if (source.isBlackBoxed) {
       this._prettyPrintButton.setAttribute("disabled", true);
       this._blackBoxButton.setAttribute("checked", true);
     } else {
@@ -521,7 +487,7 @@ SourcesView.prototype = Heritage.extend(WidgetMethods, {
       this._blackBoxButton.removeAttribute("checked");
     }
 
-    if (sourceClient.isPrettyPrinted) {
+    if (source.isPrettyPrinted) {
       this._prettyPrintButton.setAttribute("checked", true);
     } else {
       this._prettyPrintButton.removeAttribute("checked");
@@ -531,57 +497,37 @@ SourcesView.prototype = Heritage.extend(WidgetMethods, {
   /**
    * Toggle the pretty printing of the selected source.
    */
-  togglePrettyPrint: Task.async(function*() {
+  togglePrettyPrint: function() {
     if (this._prettyPrintButton.hasAttribute("disabled")) {
       return;
     }
-
-    const resetEditor = ([{ actor }]) => {
-      // Only set the text when the source is still selected.
-      if (actor == this.selectedValue) {
-        this.DebuggerView.setEditorLocation(actor, 0, { force: true });
-      }
-    };
-
-    const printError = ([{ url }, error]) => {
-      DevToolsUtils.reportException("togglePrettyPrint", error);
-    };
 
     this.DebuggerView.showProgressBar();
     const { source } = this.selectedItem.attachment;
     const sourceClient = gThreadClient.source(source);
     const shouldPrettyPrint = !sourceClient.isPrettyPrinted;
 
+    // This is only here to give immediate feedback,
+    // `renderPrettyPrinted` will set the final status of the buttons
     if (shouldPrettyPrint) {
       this._prettyPrintButton.setAttribute("checked", true);
     } else {
       this._prettyPrintButton.removeAttribute("checked");
     }
 
-    try {
-      let resolution = yield this.SourceScripts.togglePrettyPrint(source);
-      resetEditor(resolution);
-    } catch (rejection) {
-      printError(rejection);
-    }
-
-    this.DebuggerView.showEditor();
-    this.updateToolbarButtonsState();
-  }),
+    this.actions.togglePrettyPrint(source);
+  },
 
   /**
    * Toggle the black boxed state of the selected source.
    */
   toggleBlackBoxing: Task.async(function*() {
-    const { source } = this.selectedItem.attachment;
-    const sourceClient = gThreadClient.source(source);
-    const shouldBlackBox = !sourceClient.isBlackBoxed;
+    const source = getSelectedSource(this.getState());
+    const shouldBlackBox = !source.isBlackBoxed;
 
-    // Be optimistic that the (un-)black boxing will succeed, so enable/disable
-    // the pretty print button and check/uncheck the black box button immediately.
-    // Then, once we actually get the results from the server, make sure that
-    // it is in the correct state again by calling `updateToolbarButtonsState`.
-
+    // Be optimistic that the (un-)black boxing will succeed, so
+    // enable/disable the pretty print button and check/uncheck the
+    // black box button immediately.
     if (shouldBlackBox) {
       this._prettyPrintButton.setAttribute("disabled", true);
       this._blackBoxButton.setAttribute("checked", true);
@@ -590,22 +536,20 @@ SourcesView.prototype = Heritage.extend(WidgetMethods, {
       this._blackBoxButton.removeAttribute("checked");
     }
 
-    try {
-      yield this.SourceScripts.setBlackBoxing(source, shouldBlackBox);
-    } catch (e) {
-      // Continue execution in this task even if blackboxing failed.
-    }
-
-    this.updateToolbarButtonsState();
+    this.actions.blackbox(source, shouldBlackBox);
   }),
+
+  renderBlackBoxed: function(source) {
+    this.updateToolbarButtonsState(source);
+  },
 
   /**
    * Toggles all breakpoints enabled/disabled.
    */
   toggleBreakpoints: function() {
-    let breakpoints = this.getAllBreakpoints();
+    let breakpoints = getBreakpoints(this.getState());
     let hasBreakpoints = breakpoints.length > 0;
-    let hasEnabledBreakpoints = breakpoints.some(e => !e.attachment.disabled);
+    let hasEnabledBreakpoints = breakpoints.some(bp => !bp.disabled);
 
     if (hasBreakpoints && hasEnabledBreakpoints) {
       this._toggleBreakpointsButton.setAttribute("checked", true);
@@ -643,31 +587,6 @@ SourcesView.prototype = Heritage.extend(WidgetMethods, {
     }
   },
 
-  /**
-   * Look up a source actor id for a location. This is necessary for
-   * backwards compatibility; otherwise we could just use the `actor`
-   * property. Older servers don't use the same actor ids for sources
-   * across reloads, so we resolve a url to the current actor if a url
-   * exists.
-   *
-   * @param object aLocation
-   *        An object with the following properties:
-   *        - actor: the source actor id
-   *        - url: a url (might be null)
-   */
-  getActorForLocation: function(aLocation) {
-    if (aLocation.url) {
-      for (var item of this) {
-        let source = item.attachment.source;
-
-        if (aLocation.url === source.url) {
-          return source.actor;
-        }
-      }
-    }
-    return aLocation.actor;
-  },
-
   getDisplayURL: function(source) {
     if(!source.url) {
       return this.getItemByValue(source.actor).attachment.label;
@@ -681,62 +600,56 @@ SourcesView.prototype = Heritage.extend(WidgetMethods, {
    * @param object aItem
    *        The breakpoint item to select.
    */
-  _selectBreakpoint: function(aItem) {
-    if (this._selectedBreakpointItem == aItem) {
+  _selectBreakpoint: function(bp) {
+    if (this._selectedBreakpoint === bp) {
       return;
     }
     this._unselectBreakpoint();
+    this._selectedBreakpoint = bp;
 
-    this._selectedBreakpointItem = aItem;
-    this._selectedBreakpointItem.target.classList.add("selected");
+    const item = this._getBreakpoint(bp);
+    item.target.classList.add("selected");
 
     // Ensure the currently selected breakpoint is visible.
-    this.widget.ensureElementIsVisible(aItem.target);
+    this.widget.ensureElementIsVisible(item.target);
   },
 
   /**
    * Marks the current breakpoint as unselected in this sources container.
    */
   _unselectBreakpoint: function() {
-    if (!this._selectedBreakpointItem) {
+    if (!this._selectedBreakpoint) {
       return;
     }
-    this._selectedBreakpointItem.target.classList.remove("selected");
-    this._selectedBreakpointItem = null;
+
+    const item = this._getBreakpoint(this._selectedBreakpoint);
+    item.target.classList.remove("selected");
+
+    this._selectedBreakpoint = null;
   },
 
   /**
    * Opens a conditional breakpoint's expression input popup.
    */
   _openConditionalPopup: function() {
-    let breakpointItem = this._selectedBreakpointItem;
+    let breakpointItem = this._getBreakpoint(this._selectedBreakpoint);
     let attachment = breakpointItem.attachment;
     // Check if this is an enabled conditional breakpoint, and if so,
     // retrieve the current conditional epression.
-    let breakpointPromise = this.Breakpoints._getAdded(attachment);
-    if (breakpointPromise) {
-      breakpointPromise.then(aBreakpointClient => {
-        let isConditionalBreakpoint = aBreakpointClient.hasCondition();
-        let condition = aBreakpointClient.getCondition();
-        doOpen.call(this, isConditionalBreakpoint ? condition : "")
-      });
-    } else {
-      doOpen.call(this, "")
-    }
+    let bp = getBreakpoint(this.getState(), attachment);
+    let expr = (bp ? (bp.condition || "") : "");
 
-    function doOpen(aConditionalExpression) {
-      // Update the conditional expression textbox. If no expression was
-      // previously set, revert to using an empty string by default.
-      this._cbTextbox.value = aConditionalExpression;
+    // Update the conditional expression textbox. If no expression was
+    // previously set, revert to using an empty string by default.
+    this._cbTextbox.value = expr;
 
-      // Show the conditional expression panel. The popup arrow should be pointing
-      // at the line number node in the breakpoint item view.
-      this._cbPanel.hidden = false;
-      this._cbPanel.openPopup(breakpointItem.attachment.view.lineNumber,
-        BREAKPOINT_CONDITIONAL_POPUP_POSITION,
-        BREAKPOINT_CONDITIONAL_POPUP_OFFSET_X,
-        BREAKPOINT_CONDITIONAL_POPUP_OFFSET_Y);
-    }
+    // Show the conditional expression panel. The popup arrow should be pointing
+    // at the line number node in the breakpoint item view.
+    this._cbPanel.hidden = false;
+    this._cbPanel.openPopup(breakpointItem.attachment.view.lineNumber,
+                            BREAKPOINT_CONDITIONAL_POPUP_POSITION,
+                            BREAKPOINT_CONDITIONAL_POPUP_OFFSET_X,
+                            BREAKPOINT_CONDITIONAL_POPUP_OFFSET_Y);
   },
 
   /**
@@ -767,7 +680,7 @@ SourcesView.prototype = Heritage.extend(WidgetMethods, {
    */
   _createBreakpointView: function(aOptions) {
     let { location, disabled, text, message } = aOptions;
-    let identifier = this.Breakpoints.getIdentifier(location);
+    let identifier = makeLocationId(location);
 
     let checkbox = document.createElement("checkbox");
     checkbox.setAttribute("checked", !disabled);
@@ -840,7 +753,7 @@ SourcesView.prototype = Heritage.extend(WidgetMethods, {
    */
   _createContextMenu: function(aOptions) {
     let { location, disabled } = aOptions;
-    let identifier = this.Breakpoints.getIdentifier(location);
+    let identifier = makeLocationId(location);
 
     let commandset = document.createElement("commandset");
     let menupopup = document.createElement("menupopup");
@@ -947,23 +860,9 @@ SourcesView.prototype = Heritage.extend(WidgetMethods, {
     document.getElementById(contextMenu.menupopupId).remove();
 
     // Clear the breakpoint selection.
-    if (this._selectedBreakpointItem == aItem) {
-      this._selectedBreakpointItem = null;
+    if (this._selectedBreakpoint == aItem) {
+      this._selectedBreakpoint = null;
     }
-  },
-
-  /**
-   * The load listener for the source editor.
-   */
-  _onEditorLoad: function(aName, aEditor) {
-    aEditor.on("cursorActivity", this._onEditorCursorActivity);
-  },
-
-  /**
-   * The unload listener for the source editor.
-   */
-  _onEditorUnload: function(aName, aEditor) {
-    aEditor.off("cursorActivity", this._onEditorCursorActivity);
   },
 
   /**
@@ -971,62 +870,49 @@ SourcesView.prototype = Heritage.extend(WidgetMethods, {
    */
   _onEditorCursorActivity: function(e) {
     let editor = this.DebuggerView.editor;
-    let start  = editor.getCursor("start").line + 1;
-    let end    = editor.getCursor().line + 1;
-    let actor    = this.selectedValue;
+    let start = editor.getCursor("start").line + 1;
+    let end = editor.getCursor().line + 1;
+    let source = getSelectedSource(this.getState());
 
-    let location = { actor: actor, line: start };
-
-    if (this.getBreakpoint(location) && start == end) {
-      this.highlightBreakpoint(location, { noEditorUpdate: true });
-    } else {
-      this.unhighlightBreakpoint();
+    if(source) {
+      let location = { actor: source.actor, line: start };
+      if (getBreakpoint(this.getState(), location) && start == end) {
+        this.highlightBreakpoint(location, { noEditorUpdate: true });
+      } else {
+        this.unhighlightBreakpoint();
+      }
     }
   },
 
   /**
    * The select listener for the sources container.
    */
-  _onSourceSelect: Task.async(function*({ detail: sourceItem }) {
-    if (!sourceItem) {
+  _onSourceSelect: function({ detail: sourceItem }) {
+    if(!sourceItem) {
       return;
     }
+
     const { source } = sourceItem.attachment;
-    const sourceClient = gThreadClient.source(source);
-
-    // The container is not empty and an actual item was selected.
-    this.DebuggerView.setEditorLocation(sourceItem.value);
-
-    // Attempt to automatically pretty print minified source code.
-    if (Prefs.autoPrettyPrint && !sourceClient.isPrettyPrinted) {
-      let isMinified = yield SourceUtils.isMinified(sourceClient);
-      if (isMinified) {
-        this.togglePrettyPrint();
-      }
+    if(source.url) {
+      this._preferredSourceURL = source.url
     }
+    this.actions.selectSource(source);
+  },
 
-    // Set window title. No need to split the url by " -> " here, because it was
-    // already sanitized when the source was added.
-    document.title = L10N.getFormatStr("DebuggerWindowScriptTitle",
-                                       sourceItem.attachment.source.url);
+  renderSourceSelected: function(source) {
+    // Set window title. No need to split the url by " -> " here,
+    // because it was already sanitized when the source was added.
+    document.title = L10N.getFormatStr("DebuggerWindowScriptTitle", source.url);
 
-    this.DebuggerView.maybeShowBlackBoxMessage();
-    this.updateToolbarButtonsState();
-  }),
+    this.updateToolbarButtonsState(source);
+    this._selectItem(this.getItemByValue(source.actor));
+  },
 
   /**
    * The click listener for the "stop black boxing" button.
    */
   _onStopBlackBoxing: Task.async(function*() {
-    const { source } = this.selectedItem.attachment;
-
-    try {
-      yield this.SourceScripts.setBlackBoxing(source, false);
-    } catch (e) {
-      // Continue execution in this task even if blackboxing failed.
-    }
-
-    this.updateToolbarButtonsState();
+    this.actions.blackbox(getSelectedSource(this.getState()), false);
   }),
 
   /**
@@ -1038,23 +924,13 @@ SourcesView.prototype = Heritage.extend(WidgetMethods, {
     let attachment = breakpointItem.attachment;
 
     // Check if this is an enabled conditional breakpoint.
-    let breakpointPromise = this.Breakpoints._getAdded(attachment);
-    if (breakpointPromise) {
-      breakpointPromise.then(aBreakpointClient => {
-        doHighlight.call(this, aBreakpointClient.hasCondition());
+    let bp = getBreakpoint(this.getState(), attachment);
+    if (bp) {
+      this.highlightBreakpoint(bp.location, {
+        openPopup: bp.condition && e.button == 0
       });
     } else {
-      doHighlight.call(this, false);
-    }
-
-    function doHighlight(aConditionalBreakpointFlag) {
-      // Highlight the breakpoint in this pane and in the editor.
-      this.highlightBreakpoint(attachment, {
-        // Don't show the conditional expression popup if this is not a
-        // conditional breakpoint, or the right mouse button was pressed (to
-        // avoid clashing the popup with the context menu).
-        openPopup: aConditionalBreakpointFlag && e.button == 0
-      });
+      this.highlightBreakpoint(bp.location);
     }
   },
 
@@ -1064,14 +940,14 @@ SourcesView.prototype = Heritage.extend(WidgetMethods, {
   _onBreakpointCheckboxClick: function(e) {
     let sourceItem = this.getItemForElement(e.target);
     let breakpointItem = this.getItemForElement.call(sourceItem, e.target);
-    let attachment = breakpointItem.attachment;
+    let location = breakpointItem.attachment;
 
-    // Toggle the breakpoint enabled or disabled.
-    this[attachment.disabled ? "enableBreakpoint" : "disableBreakpoint"](attachment, {
-      // Do this silently (don't update the checkbox checked state), since
-      // this listener is triggered because a checkbox was already clicked.
-      silent: true
-    });
+    if(location.disabled) {
+      this.actions.enableBreakpoint(location);
+    }
+    else {
+      this.actions.disableBreakpoint(location);
+    }
 
     // Don't update the editor location (avoid propagating into _onBreakpointClick).
     e.preventDefault();
@@ -1100,19 +976,20 @@ SourcesView.prototype = Heritage.extend(WidgetMethods, {
   _onConditionalPopupHiding: Task.async(function*() {
     this._conditionalPopupVisible = false; // Used in tests.
 
-    let breakpointItem = this._selectedBreakpointItem;
+    let breakpointItem = this._getBreakpoint(this._selectedBreakpoint);
     let attachment = breakpointItem.attachment;
 
     // Check if this is an enabled conditional breakpoint, and if so,
     // save the current conditional expression.
-    let breakpointPromise = this.Breakpoints._getAdded(attachment);
-    if (breakpointPromise) {
-      let { location } = yield breakpointPromise;
+    let bp = getBreakpoint(this.state(), attachment);
+    if (bp) {
       let condition = this._cbTextbox.value;
-      yield this.Breakpoints.updateCondition(location, condition);
+      this.actions.setBreakpointCondition(bp.location, condition);
     }
 
-    window.emit(EVENTS.CONDITIONAL_BREAKPOINT_POPUP_HIDING);
+    // TODO(jwl): the tests probably depend on this event, but they
+    // should instead listen for the breakpoint-condition-updated event
+    //window.emit(EVENTS.CONDITIONAL_BREAKPOINT_POPUP_HIDING);
   }),
 
   /**
@@ -1133,15 +1010,15 @@ SourcesView.prototype = Heritage.extend(WidgetMethods, {
                 this.DebuggerView.clickedLine + 1 :
                 this.DebuggerView.editor.getCursor().line + 1);
     let location = { actor, line };
-    let breakpointItem = this.getBreakpoint(location);
+    let breakpointItem = this._getBreakpoint(getBreakpoint(this.getState, location));
 
     // If a breakpoint already existed, remove it now.
     if (breakpointItem) {
-      this.Breakpoints.removeBreakpoint(location);
+      this.actions.removeBreakpoint(location);
     }
     // No breakpoint existed at the required location, add one now.
     else {
-      this.Breakpoints.addBreakpoint(location);
+      this.actions.addBreakpoint(location);
     }
   },
 
@@ -1154,7 +1031,7 @@ SourcesView.prototype = Heritage.extend(WidgetMethods, {
                 this.DebuggerView.clickedLine + 1 :
                 this.DebuggerView.editor.getCursor().line + 1);
     let location = { actor, line };
-    let breakpointItem = this.getBreakpoint(location);
+    let breakpointItem = this._getBreakpoint(getBreakpoint(this.getState, location));
 
     // If a breakpoint already existed or wasn't a conditional, morph it now.
     if (breakpointItem) {
@@ -1162,8 +1039,22 @@ SourcesView.prototype = Heritage.extend(WidgetMethods, {
     }
     // No breakpoint existed at the required location, add one now.
     else {
-      this.Breakpoints.addBreakpoint(location, { openPopup: true });
+      // TODO(jwl): make conditional stuff work
+      // this.actions.asyncHelpers.afterBreakpointFinalized(this.Breakpoints, location, () => {
+      //   this.highlightBreakpoint(location, { openPopup: true });
+      // });
+      this.actions.addBreakpoint(location);
     }
+  },
+
+  getOtherBreakpoints: function(location) {
+    const bps = getBreakpoints(this.getState());
+    if(location) {
+      return bps.filter(bp => {
+        return (bp.actor !== location.actor || bp.line !== location.line);
+      });
+    }
+    return bps;
   },
 
   /**
@@ -1185,7 +1076,7 @@ SourcesView.prototype = Heritage.extend(WidgetMethods, {
    */
   _onEnableSelf: function(aLocation) {
     // Enable the breakpoint, in this container and the controller store.
-    this.enableBreakpoint(aLocation);
+    this.actions.enableBreakpoint(aLocation);
   },
 
   /**
@@ -1195,8 +1086,7 @@ SourcesView.prototype = Heritage.extend(WidgetMethods, {
    *        @see DebuggerController.Breakpoints.addBreakpoint
    */
   _onDisableSelf: function(aLocation) {
-    // Disable the breakpoint, in this container and the controller store.
-    this.disableBreakpoint(aLocation);
+    this.actions.disableBreakpoint(aLocation);
   },
 
   /**
@@ -1206,9 +1096,7 @@ SourcesView.prototype = Heritage.extend(WidgetMethods, {
    *        @see DebuggerController.Breakpoints.addBreakpoint
    */
   _onDeleteSelf: function(aLocation) {
-    // Remove the breakpoint, from this container and the controller store.
-    this.removeBreakpoint(aLocation);
-    this.Breakpoints.removeBreakpoint(aLocation);
+    this.actions.removeBreakpoint(aLocation);
   },
 
   /**
@@ -1218,20 +1106,9 @@ SourcesView.prototype = Heritage.extend(WidgetMethods, {
    *        @see DebuggerController.Breakpoints.addBreakpoint
    */
   _onEnableOthers: function(aLocation) {
-    let enableOthers = aCallback => {
-      let other = this.getOtherBreakpoints(aLocation);
-      let outstanding = other.map(e => this.enableBreakpoint(e.attachment));
-      promise.all(outstanding).then(aCallback);
-    }
-
-    // Breakpoints can only be set while the debuggee is paused. To avoid
-    // an avalanche of pause/resume interrupts of the main thread, simply
-    // pause it beforehand if it's not already.
-    if (gThreadClient.state != "paused") {
-      gThreadClient.interrupt(() => enableOthers(() => gThreadClient.resume()));
-    } else {
-      enableOthers();
-    }
+    let other = this.getOtherBreakpoints(aLocation);
+    // TODO(jwl): batch these and interrupt the thread for all of them
+    other.forEach(bp => this._onEnableSelf(bp.location));
   },
 
   /**
@@ -1242,7 +1119,7 @@ SourcesView.prototype = Heritage.extend(WidgetMethods, {
    */
   _onDisableOthers: function(aLocation) {
     let other = this.getOtherBreakpoints(aLocation);
-    other.forEach(e => this._onDisableSelf(e.attachment));
+    other.forEach(bp => this._onDisableSelf(bp.location));
   },
 
   /**
@@ -1253,7 +1130,7 @@ SourcesView.prototype = Heritage.extend(WidgetMethods, {
    */
   _onDeleteOthers: function(aLocation) {
     let other = this.getOtherBreakpoints(aLocation);
-    other.forEach(e => this._onDeleteSelf(e.attachment));
+    other.forEach(bp => this._onDeleteSelf(bp.location));
   },
 
   /**
@@ -1282,8 +1159,8 @@ SourcesView.prototype = Heritage.extend(WidgetMethods, {
   _cmPopup: null,
   _cbPanel: null,
   _cbTextbox: null,
-  _selectedBreakpointItem: null,
+  _selectedBreakpoint: null,
   _conditionalPopupVisible: false
 });
 
-DebuggerView.Sources = new SourcesView(DebuggerController, DebuggerView);
+module.exports = SourcesView;

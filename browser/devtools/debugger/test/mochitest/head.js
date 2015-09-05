@@ -1208,3 +1208,23 @@ function afterDispatch(dispatcher, type) {
     });
   });
 }
+
+// function runActionDelayed(action, args) {
+//   executeSoon(() => action.apply(null, args));
+// }
+
+// function waitForStoreChange(store, dataName) {
+//   var deferred = promise.defer();
+//   dump('waitForStoreChange ' + dataName + '\n');
+//   store.onChange(dataName, function(data) {
+//     dump('JWL ONCHANGE ');
+//     dump(JSON.stringify(data) + '\n');
+//     if(data.error) {
+//       deferred.reject(data);
+//     }
+//     else {
+//       deferred.resolve(data);
+//     }
+//   });
+//   return deferred.promise;
+// }

@@ -6,6 +6,7 @@
 const fluxify = require('./fluxify/dispatcher');
 const thunkMiddleware = require('./fluxify/thunkMiddleware');
 const logMiddleware = require('./fluxify/logMiddleware');
+const promiseMiddleware = require('./fluxify/promiseMiddleware');
 const waitUntilService = require('./fluxify/waitUntilService')
 const { compose } = require('devtools/toolkit/DevToolsUtils');
 
@@ -20,7 +21,8 @@ const { compose } = require('devtools/toolkit/DevToolsUtils');
 module.exports = (opts={}) => {
   const middleware = [
     thunkMiddleware,
-    waitUntilService.service
+    promiseMiddleware.middleware(opts.getTargetClient),
+    waitUntilService.service,
   ];
 
   if (opts.log) {

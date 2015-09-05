@@ -11,16 +11,21 @@ EXTRA_JS_MODULES.devtools.debugger += [
 EXTRA_JS_MODULES.devtools.debugger.content += [
     'content/constants.js',
     'content/globalActions.js',
+    'content/queries.js',
     'content/utils.js'
 ]
 
 EXTRA_JS_MODULES.devtools.debugger.content.views += [
-    'content/views/event-listeners-view.js'
+    'content/views/event-listeners-view.js',
+    'content/views/sources-view.js'
 ]
 
 EXTRA_JS_MODULES.devtools.debugger.content.stores += [
+    'content/stores/async-requests.js',
+    'content/stores/breakpoints.js',
     'content/stores/event-listeners.js',
-    'content/stores/index.js'
+    'content/stores/index.js',
+    'content/stores/sources.js'
 ]
 
 BROWSER_CHROME_MANIFESTS += ['test/mochitest/browser.ini']

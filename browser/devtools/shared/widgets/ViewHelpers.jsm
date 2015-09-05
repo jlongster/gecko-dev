@@ -1145,6 +1145,21 @@ this.WidgetMethods = {
     return null;
   },
 
+  _selectItem: function(aItem) {
+    // A falsy item is allowed to invalidate the current selection.
+    let targetElement = aItem ? aItem._target : null;
+    let prevElement = this._widget.selectedItem;
+
+    // Make sure the selected item's target element is focused and visible.
+    if (this.autoFocusOnSelection && targetElement) {
+      targetElement.focus();
+    }
+
+    if (targetElement != prevElement) {
+      this._widget.selectedItem = targetElement;
+    }
+  },
+
   /**
    * Selects the element with the entangled item in this container.
    * @param Item | function aItem
@@ -1156,14 +1171,9 @@ this.WidgetMethods = {
       aItem = this.getItemForPredicate(aItem);
     }
 
-    // A falsy item is allowed to invalidate the current selection.
     let targetElement = aItem ? aItem._target : null;
     let prevElement = this._widget.selectedItem;
 
-    // Make sure the selected item's target element is focused and visible.
-    if (this.autoFocusOnSelection && targetElement) {
-      targetElement.focus();
-    }
     if (this.maintainSelectionVisible && targetElement) {
       // Some methods are optional. See the WidgetMethods object documentation
       // for a comprehensive list.
@@ -1172,10 +1182,11 @@ this.WidgetMethods = {
       }
     }
 
+    this._selectItem(aItem);
+
     // Prevent selecting the same item again and avoid dispatching
     // a redundant selection event, so return early.
     if (targetElement != prevElement) {
-      this._widget.selectedItem = targetElement;
       let dispTarget = targetElement || prevElement;
       let dispName = this.suppressSelectionEvents ? "suppressed-select" : "select";
       ViewHelpers.dispatchEvent(dispTarget, dispName, aItem);
