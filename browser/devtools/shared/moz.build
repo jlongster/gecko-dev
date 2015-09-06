@@ -50,7 +50,16 @@ EXTRA_JS_MODULES.devtools.shared += [
 ]
 
 EXTRA_JS_MODULES.devtools.shared.content += [
+    'content/immutable.js',
     'content/react.js'
+]
+
+EXTRA_JS_MODULES.devtools.shared.content["typed-immutable"] += [
+    'content/typed-immutable/index.js',
+    'content/typed-immutable/list.js',
+    'content/typed-immutable/map.js',
+    'content/typed-immutable/record.js',
+    'content/typed-immutable/typed.js'
 ]
 
 if CONFIG['DEBUG_JS_MODULES']:

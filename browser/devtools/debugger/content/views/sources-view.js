@@ -540,6 +540,11 @@ SourcesView.prototype = Heritage.extend(WidgetMethods, {
   }),
 
   renderBlackBoxed: function(source) {
+    const sourceItem = this.getItemByValue(source.actor);
+    sourceItem.prebuiltNode.classList.toggle(
+      "black-boxed",
+      source.isBlackBoxed
+    );
     this.updateToolbarButtonsState(source);
   },
 

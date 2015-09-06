@@ -8,22 +8,60 @@ const promise = require('promise');
 const { rdpInvoke } = require('../utils');
 const { PROMISE, HISTOGRAM_ID } = require('devtools/shared/fluxify/promiseMiddleware');
 const { getSource, getSourceText } = require('../queries');
+const typedImmutable = require('devtools/shared/content/typed-immutable/index');
+const { Record, Maybe } = typedImmutable;
+
+var SourceText = Record({
+  loading: Maybe(Boolean),
+  error: Maybe(String),
+  text: Maybe(String),
+  contentType: Maybe(String)
+});
+
+const SourceType = Record({
+  actor: String,
+  url: String,
+  addonID: Maybe(String),
+  addonPath: Maybe(String),
+  isBlackBoxed: Boolean,
+  isPrettyPrinted: Boolean,
+  introductionUrl: Maybe(String),
+  introductionType: Maybe(String)
+});
+
+const SourceOpts = Record({
+  line: Number,
+  charOffset: Maybe(Number),
+  lineOffset: Maybe(Number),
+  moveCursor: Maybe(Boolean),
+  debugHightlight: Maybe(Boolean)
+});
+
+const SourceMap = typedImmutable.Map(String, SourceType);
+const SourceTextMap = typedImmutable.Map(String, SourceText);
+const SourceState = Record({
+  sources: SourceMap,
+  selectedSource: Maybe(SourceType),
+  selectedSourceOpts: Maybe(SourceOpts),
+  sourcesText: SourceTextMap
+});
 
 function getInitialState() {
-  return {
-    sources: new Map(),
+  return SourceState({
+    sources: SourceMap(),
     selectedSource: null,
-    sourcesText: new Map()
-  };
+    selectedSourceOpts: null,
+    sourcesText: SourceTextMap()
+  });
 }
 
 function update(state = getInitialState(), action, emitChange) {
   switch(action.type) {
-  case constants.ADD_SOURCE:
-    state.sources.set(action.source.actor, action.source);
-    console.log('new efjsfjd SOURCE', state);
+  case constants.ADD_SOURCE: {
+    const s = state.setIn(['sources', action.source.actor], action.source);
     emitChange('source', action.source);
-    break;
+    return s;
+  }
 
   case constants.LOAD_SOURCES:
     if(action.status === 'done') {
@@ -37,40 +75,47 @@ function update(state = getInitialState(), action, emitChange) {
 
   case constants.SELECT_SOURCE:
     if(action.status === 'start') {
-      state.selectedSource = action.source;
+      const s = state.set('selectedSource', action.source);
       emitChange('source-selected', action.source);
+      return s;
     }
     else if(action.status === 'done' &&
             state.selectedSource.actor === action.source.actor) {
-      state.selectedSourceOpts = action.opts;
+      const s = state.set('selectedSourceOpts', action.opts);
       emitChange('source-selected-ready', { source: action.source,
                                             opts: action.opts });
+      return s;
     }
     break;
 
-  case constants.LOAD_SOURCE_TEXT:
-    _updateText(state, action);
-    emitChange('source-text-loaded', action.source);
-    break;
+  case constants.LOAD_SOURCE_TEXT: {
+    const s = _updateText(state, action);
+    emitChange('source-text-loaded', s.getIn(['sources', action.source.actor]));
+    return s;
+  }
 
   case constants.BLACKBOX:
     if(action.status === 'done') {
-      const source = state.sources.get(action.source.actor)
-      source.isBlackBoxed = action.value.isBlackBoxed;
-      emitChange('blackboxed', action.source);
+      const s = state.setIn(
+        ['sources', action.source.actor, 'isBlackBoxed'],
+        action.value.isBlackBoxed
+      );
+      emitChange('blackboxed', s.getIn(['sources', action.source.actor]));
+      return s;
     }
     break;
 
   case constants.TOGGLE_PRETTY_PRINT:
-    const source = state.sources.get(action.source.actor)
-    _updateText(state, action);
-    emitChange('source-text-loaded', action.source);
+    const s = _updateText(state, action);
+    emitChange('source-text-loaded', s.getIn(['sources', action.source.actor]));
 
     if(action.status === 'done') {
-      source.isPrettyPrinted = action.value.isPrettyPrinted;
-      emitChange('prettyprinted', action.source);
+      const s = state.setIn(['sources', action.source.actor, 'isPrettyPrinted'],
+                            action.value.isPrettyPrinted);
+      emitChange('prettyprinted', s.getIn(['sources', action.source.actor]));
+      return s;
     }
-    break;
+    return s;
 
   case constants.UNLOAD:
     // Reset the entire state to just the initial state, a blank state
@@ -85,13 +130,15 @@ function _updateText(state, action) {
   const { source } = action;
 
   if(action.status === 'start') {
-    state.sourcesText.set(source.actor, { loading: true });
+    return state.setIn(['sourcesText', source.actor],
+                       { loading: true });
   }
   else if(action.status === 'error') {
-    state.sourcesText.set(source.actor, { error: action.error });
+    return state.setIn(['sourcesText', source.actor],
+                       { error: action.error });
   }
   else {
-    state.sourcesText.set(source.actor, {
+    return state.setIn(['sourcesText', source.actor], {
       text: action.value.text,
       contentType: action.value.contentType
     });
