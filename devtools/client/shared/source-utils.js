@@ -52,7 +52,9 @@ exports.viewSourceInDebugger = Task.async(function *(toolbox, sourceURL, sourceL
   // source immediately. Otherwise, initialize it and wait for the sources
   // to be added first.
   let debuggerAlreadyOpen = toolbox.getPanel("jsdebugger");
-  let { panelWin: dbg } = yield toolbox.loadTool("jsdebugger");
+  let pan = yield toolbox.loadTool("jsdebugger");
+  dump(Object.keys(pan) + '\n');
+  let { panelWin: dbg } = pan;
 
   if (!debuggerAlreadyOpen) {
     yield dbg.once(dbg.EVENTS.SOURCES_ADDED);

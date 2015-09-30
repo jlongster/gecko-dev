@@ -18,7 +18,15 @@ function test() {
 
     let [tab,, panel] = yield initDebugger(EXAMPLE_URL + TAB_URL);
     let win = panel.panelWin;
-    yield waitForSourceShown(panel, SCRIPT_URL);
+    // yield waitForSourceShown(panel, SCRIPT_URL);
+
+    let Sources = win.DebuggerView.Sources;
+    yield waitForDebuggerEvents(panel, win.EVENTS.SOURCE_SHOWN);
+    if(Sources.selectedItem.attachment.source.url.indexOf(SCRIPT_URL) === -1) {
+      Sources.selectedValue = getSourceActor(win.DebuggerView.Sources, EXAMPLE_URL + SCRIPT_URL)
+    }
+
+    dump('JWL adding breakpoint\n');
     yield panel.addBreakpoint({
       actor: getSourceActor(win.DebuggerView.Sources, EXAMPLE_URL + SCRIPT_URL),
       line: 6
@@ -28,8 +36,10 @@ function test() {
     // debugger in paused state for a bit because we are called before
     // that request finishes (see bug 1156531 for plans to fix)
     if(panel.panelWin.gThreadClient.state !== "attached") {
+      dump('waiting for resumed event\n');
       yield waitForThreadEvents(panel, "resumed");
     }
+
 
     yield testBreakpoint();
     yield reloadActiveTab(panel, win.EVENTS.SOURCE_SHOWN);
