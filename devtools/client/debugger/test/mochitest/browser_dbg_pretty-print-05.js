@@ -19,6 +19,8 @@ function test() {
     gSources = gDebugger.DebuggerView.Sources;
     gControllerSources = gDebugger.DebuggerController.SourceScripts;
 
+    const actions = gDebugger.DebuggerController.actions;
+
     Task.spawn(function*() {
       yield waitForSourceShown(gPanel, TAB_URL);
 
@@ -35,11 +37,15 @@ function test() {
       clickPrettyPrintButton();
 
       let { source } = gSources.selectedItem.attachment;
+      runActionDelayed(actions.togglePrettyPrint, [source]);
+
       try {
-        yield gControllerSources.togglePrettyPrint(source);
+        yield waitForStoreChange(gControllerSources, 'pretty-printed');
         ok(false, "The promise for a prettified source should be rejected!");
-      } catch ([source, error]) {
-        is(error, "Can't prettify non-javascript files.",
+      }
+      catch (data) {
+        dump(JSON.stringify(data) + '\n');
+        is(data.error, "Can't prettify non-javascript files.",
           "The promise was correctly rejected with a meaningful message.");
       }
 

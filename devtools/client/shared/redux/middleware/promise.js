@@ -26,7 +26,9 @@ function promiseMiddleware ({ dispatch, getState }) {
 
     dispatch(Object.assign({}, action, { status: "start" }));
 
-    promise.then(value => {
+    // Return the promise so action creators can still compose if they
+    // want to.
+    return promise.then(value => {
       executeSoon(() => {
         dispatch(Object.assign({}, action, {
           status: "done",
@@ -40,12 +42,10 @@ function promiseMiddleware ({ dispatch, getState }) {
           error
         }));
       });
-      reportException(`@@redux/middleware/promise#${action.type}`, error);
+      throw error;
     });
 
-    // Return the promise so action creators can still compose if they
-    // want to.
-    return promise;
+    // return promise;
   };
 }
 

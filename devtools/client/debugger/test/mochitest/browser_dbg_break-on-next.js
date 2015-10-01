@@ -46,7 +46,7 @@ function test() {
     EventUtils.sendMouseEvent({ type: "mousedown" }, gResumeButton, gDebugger);
     yield oncePaused;
 
-    let updatedFrame = yield waitForDebuggerEvents(gPanel, gDebugger.EVENTS.FETCHED_SCOPES);
+    yield waitForDebuggerEvents(gPanel, gDebugger.EVENTS.SOURCE_SHOWN);
     let variables = gDebugger.DebuggerView.Variables;
 
     is(variables._store.length, 4, "Correct number of scopes available");
@@ -75,7 +75,7 @@ function test() {
     });
     yield oncePaused;
 
-    let updatedFrame = yield waitForDebuggerEvents(gPanel, gDebugger.EVENTS.FETCHED_SCOPES);
+    yield waitForDebuggerEvents(gPanel, gDebugger.EVENTS.SOURCE_SHOWN);
     let variables = gDebugger.DebuggerView.Variables;
 
     is(variables._store.length, 6, "Correct number of scopes available");

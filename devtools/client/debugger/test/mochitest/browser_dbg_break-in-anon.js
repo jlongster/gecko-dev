@@ -23,9 +23,8 @@ function test() {
       yield waitForSourceShown(gPanel, "-eval.js");
       is(gSources.values.length, 1, "Should have 1 source");
 
-      let hasFrames = waitForDebuggerEvents(gPanel, gDebugger.EVENTS.AFTER_FRAMES_REFILLED);
       callInTab(gTab, "evalSourceWithDebugger");
-      yield hasFrames;
+      yield waitForDebuggerEvents(gPanel, gDebugger.EVENTS.SOURCE_SHOWN);
 
       is(gSources.values.length, 2, "Should have 2 sources");
 

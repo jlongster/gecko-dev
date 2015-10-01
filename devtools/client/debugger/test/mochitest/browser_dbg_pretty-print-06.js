@@ -21,6 +21,8 @@ function test() {
     gSources = gDebugger.DebuggerView.Sources;
     gControllerSources = gDebugger.DebuggerController.SourceScripts;
 
+    const actions = gDebugger.DebuggerController.actions;
+
     // We can't feed javascript files with syntax errors to the debugger,
     // because they will never run, thus sometimes getting gc'd before the
     // debugger is opened, or even before the target finishes navigating.
@@ -48,13 +50,13 @@ function test() {
       ok(gEditor.getText().includes("myFunction"),
         "The source shouldn't be pretty printed yet.");
 
-      clickPrettyPrintButton();
-
       let { source } = gSources.selectedItem.attachment;
+      runActionDelayed(actions.togglePrettyPrint, [source]);
+
       try {
-        yield gControllerSources.togglePrettyPrint(source);
+        yield waitForStoreChange(gControllerSources, 'pretty-printed');
         ok(false, "The promise for a prettified source should be rejected!");
-      } catch ([source, error]) {
+      } catch ({source, error}) {
         ok(error.includes("prettyPrintError"),
           "The promise was correctly rejected with a meaningful message.");
       }
@@ -74,10 +76,6 @@ function test() {
       yield closeDebuggerAndFinish(gPanel);
     });
   });
-}
-
-function clickPrettyPrintButton() {
-  gDebugger.document.getElementById("pretty-print").click();
 }
 
 registerCleanupFunction(function() {

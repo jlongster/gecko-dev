@@ -20,8 +20,7 @@ function test() {
     gEditor = gDebugger.DebuggerView.editor;
     gSources = gDebugger.DebuggerView.Sources;
 
-    promise.all([waitForSourceShown(gPanel, "code_ugly-8"),
-                 waitForEditorLocationSet(gPanel)])
+    waitForSourceShown(gPanel, "code_ugly-8")
       .then(testSourceIsUgly)
       .then(() => {
         const finished = waitForSourceShown(gPanel, "code_ugly-8");

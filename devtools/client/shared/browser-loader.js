@@ -57,7 +57,7 @@ function BrowserLoader(baseURI, window) {
   if (appConstants.DEBUG_JS_MODULES) {
     // Load in the dev version of React
     dynamicPaths["devtools/shared/vendor/react"] =
-      "resource:///modules/devtools/vendor/react-dev.js";
+      "resource:///modules/devtools/shared/vendor/react-dev.js";
   }
 
   const opts = {
@@ -70,9 +70,11 @@ function BrowserLoader(baseURI, window) {
       const uri = require.resolve(id);
 
       if (!uri.startsWith(baseURI) &&
-          !uri.startsWith(VENDOR_CONTENT_URL)) {
+          !uri.startsWith(VENDOR_CONTENT_URL) &&
+          !uri.startsWith("resource:///modules/devtools/client/shared/redux")) {
         return devtools.require(uri);
       }
+
       return require(uri);
     }
   };

@@ -273,7 +273,8 @@ function ensureSourceIs(aPanel, aUrlOrSource, aWaitFlag = false) {
   let sources = aPanel.panelWin.DebuggerView.Sources;
 
   if (sources.selectedValue === aUrlOrSource ||
-      sources.selectedItem.attachment.source.url.includes(aUrlOrSource)) {
+      (sources.selectedItem &&
+       sources.selectedItem.attachment.source.url.includes(aUrlOrSource))) {
     ok(true, "Expected source is shown: " + aUrlOrSource);
     return promise.resolve(null);
   }
@@ -786,16 +787,23 @@ function getSelectedSourceElement(aPanel) {
     return aPanel.panelWin.DebuggerView.Sources.selectedItem.prebuiltNode;
 }
 
-function toggleBlackBoxing(aPanel, aSource = null) {
+function toggleBlackBoxing(aPanel, aSourceActor = null) {
   function clickBlackBoxButton() {
     getBlackBoxButton(aPanel).click();
   }
 
-  const blackBoxChanged = waitForThreadEvents(aPanel, "blackboxchange");
+  const blackBoxChanged = waitForDispatch(
+    aPanel,
+    aPanel.panelWin.constants.BLACKBOX
+  ).then(() => {
+    return aSourceActor ?
+      getSource(aPanel, aSourceActor) :
+      getSelectedSource(aPanel)
+  });
 
-  if (aSource) {
-    aPanel.panelWin.DebuggerView.Sources.selectedValue = aSource;
-    ensureSourceIs(aPanel, aSource, true).then(clickBlackBoxButton);
+  if (aSourceActor) {
+    aPanel.panelWin.DebuggerView.Sources.selectedValue = aSourceActor;
+    ensureSourceIs(aPanel, aSourceActor, true).then(clickBlackBoxButton);
   } else {
     clickBlackBoxButton();
   }
@@ -937,6 +945,16 @@ function popPrefs() {
 }
 
 // Source helpers
+
+function getSelectedSource(panel) {
+  const win = panel.panelWin;
+  return win.queries.getSelectedSource(win.DebuggerController.getState());
+}
+
+function getSource(panel, actor) {
+  const win = panel.panelWin;
+  return win.queries.getSource(win.DebuggerController.getState(), actor);
+}
 
 function getSelectedSourceURL(aSources) {
   return (aSources.selectedItem &&
@@ -1192,8 +1210,46 @@ function source(sourceClient) {
   return rdpInvoke(sourceClient, sourceClient.source);
 }
 
-function afterDispatch(store, type) {
-  info("Waiting on dispatch: " + type);
+
+// actions
+
+function makeActionsThatWait(panel) {
+  const win = panel.panelWin;
+  const dispatch = win.DebuggerController.dispatch;
+  const { bindActionCreators } = win.require('devtools/client/shared/vendor/redux');
+  const { PROMISE } = win.require('devtools/client/shared/redux/middleware/promise');
+
+  return bindActionCreators(win.actions, action => {
+    const deferred = promise.defer();
+    let seqId = null;
+
+    // Install a handler that monitors the async request made from the
+    // action. This assumes an action creator that makes a request. We
+    // grab the seqId from the `start` action, and we will always
+    // deterministically be the first handlers of that (so if multiple
+    // actions each fire a request, this will correctly tie the right
+    // request with the right action). Return a promise that will
+    // resolve with the `done` action of the request.
+    dispatch({
+      type: "@@service/waitUntil",
+      predicate: action => {
+        if(!seqId && action.seqId && action.status === "start") {
+          info("Waiting for " + action.type + " to resolve");
+          seqId = action.seqId;
+        } else {
+          info(action.type + " request finished");
+          return action.seqId === seqId && action.status === "done";
+        }
+      },
+      run: (dispatch, getState, action) => deferred.resolve(action)
+    });
+
+    dispatch(action);
+    return deferred.promise;
+  });
+}
+
+function _afterDispatch(store, type) {
   return new Promise(resolve => {
     store.dispatch({
       // Normally we would use `services.WAIT_UNTIL`, but use the
@@ -1202,9 +1258,46 @@ function afterDispatch(store, type) {
       type: "@@service/waitUntil",
       predicate: action => (
         action.type === type &&
-        action.status ? action.status === "done" : true
+        (action.status ? action.status === "done" : true)
       ),
-      run: resolve
+      run: (dispatch, getState, action) => {
+        resolve(action);
+      }
     });
   });
 }
+
+function waitForDispatch(panel, type, eventRepeat = 1) {
+  const controller = panel.panelWin.DebuggerController;
+  const actionType = panel.panelWin.constants[type];
+  let count = 0;
+
+  return Task.spawn(function*() {
+    info("Waiting for " + type + " to dispatch " + eventRepeat + " time(s)");
+    while(count < eventRepeat) {
+      yield _afterDispatch(controller, actionType);
+      count++;
+      info(type + " dispatched " + count + " time(s)");
+    }
+  });
+}
+
+// function runActionDelayed(action, args) {
+//   executeSoon(() => action.apply(null, args));
+// }
+
+// function waitForStoreChange(store, dataName) {
+//   var deferred = promise.defer();
+//   dump('waitForStoreChange ' + dataName + '\n');
+//   store.onChange(dataName, function(data) {
+//     dump('JWL ONCHANGE ');
+//     dump(JSON.stringify(data) + '\n');
+//     if(data.error) {
+//       deferred.reject(data);
+//     }
+//     else {
+//       deferred.resolve(data);
+//     }
+//   });
+//   return deferred.promise;
+// }
