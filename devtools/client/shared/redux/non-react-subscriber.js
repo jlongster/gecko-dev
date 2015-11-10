@@ -113,6 +113,7 @@ function makeStateBroadcaster(stillAliveFunc) {
 function enhanceStoreWithBroadcaster(store, broadcaster) {
   broadcaster.subscribeToStore(store);
   store.onChange = broadcaster.onChange;
+  store.offChange = broadcaster.offChange;
   return store;
 };
 

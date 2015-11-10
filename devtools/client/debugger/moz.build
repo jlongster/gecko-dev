@@ -9,6 +9,8 @@ DIRS += [
 
 DevToolsModules(
     'debugger-commands.js',
+    'mock-init.js',
+    'mocks.js',
     'panel.js'
 )
 

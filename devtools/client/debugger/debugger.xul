@@ -496,4 +496,8 @@
     </vbox>
   </panel>
 
+  <panel style="position:fixed;top:0;right:0;" id="redux-devtools"></panel>
+
+  <script type="text/javascript" src="resource://gre/browser/modules/devtools/debugger/mocks.js"/>
+  <script type="text/javascript" src="resource://gre/browser/modules/devtools/debugger/mock-init.js"/>
 </window>

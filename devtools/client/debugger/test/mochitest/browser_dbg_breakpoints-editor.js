@@ -51,7 +51,7 @@ function test() {
       gEditor.once("breakpointAdded", onEditorBreakpointAddSwitch);
       gEditor.once("change", onEditorTextChanged);
       actions.selectSource(gSources.items[0].attachment.source);
-      yield waitForDispatch(gPanel, constants.LOAD_SOURCE_TEXT);
+      yield waitForDebuggerEvents(gPanel, gDebugger.EVENTS.SOURCE_SHOWN);
       onReadyForClick();
     });
 

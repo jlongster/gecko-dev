@@ -557,8 +557,18 @@ const resolveURI = iced(function resolveURI(id, mapping) {
 
   while (index < count) {
     let [ path, uri ] = mapping[index++];
-    if (id.indexOf(path) === 0)
-      return normalizeExt(id.replace(path, uri));
+    if (path.length === 0) {
+      return normalizeExt(uri + id);
+    }
+    else if (id.indexOf(path) === 0) {
+      let delimiterMatched = (
+        path.length === id.length ||
+          id[path.length] !== '-'
+      );
+      if(delimiterMatched) {
+        return normalizeExt(id.replace(path, uri));
+      }
+    }
   }
   return void 0; // otherwise we raise a warning, see bug 910304
 });

@@ -32,6 +32,7 @@ const VENDOR_CONTENT_URL = "resource://devtools/client/shared/vendor";
  */
 function BrowserLoader(baseURI, window) {
   const loaderOptions = devtools.require("@loader/options");
+
   const opts = {
     id: "browser-loader",
     sharedGlobal: true,
@@ -42,9 +43,11 @@ function BrowserLoader(baseURI, window) {
       let uri = require.resolve(id);
 
       if (!uri.startsWith(baseURI) &&
-          !uri.startsWith(VENDOR_CONTENT_URL)) {
+          !uri.startsWith(VENDOR_CONTENT_URL) &&
+          !uri.startsWith("resource://devtools/client/shared/redux")) {
         return devtools.require(uri);
       }
+
       return require(uri);
     }
   };
