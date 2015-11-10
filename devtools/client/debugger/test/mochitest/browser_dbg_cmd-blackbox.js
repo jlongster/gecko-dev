@@ -22,12 +22,13 @@ function* spawnTest() {
 
   let toolbox = yield gDevTools.showToolbox(options.target, "jsdebugger");
   let panel = toolbox.getCurrentPanel();
+  let constants = panel.panelWin.require('./content/constants');
 
   yield waitForDebuggerEvents(panel, panel.panelWin.EVENTS.SOURCE_SHOWN);
 
   function cmd(aTyped, aEventRepeat = 1, aOutput = "") {
     return promise.all([
-      waitForThreadEvents(panel, "blackboxchange", aEventRepeat),
+      waitForDispatch(panel, constants.BLACKBOX, aEventRepeat),
       helpers.audit(options, [{ setup: aTyped, output: aOutput, exec: {} }])
     ]);
   }
@@ -79,6 +80,7 @@ function* spawnTest() {
             [/blackboxing_three\.js/g, /blackboxing_two\.js/g]);
 
   bbButton = yield selectSourceAndGetBlackBoxButton(panel, BLACKBOXME_URL);
+  dump('JWL bbButton: ' + bbButton + ' ' + bbButton.checked + '\n');
   ok(bbButton.checked,
     "blackboxme should be black boxed because it doesn't match the glob.");
   bbButton = yield selectSourceAndGetBlackBoxButton(panel, BLACKBOXONE_URL);

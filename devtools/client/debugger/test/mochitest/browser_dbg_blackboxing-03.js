@@ -40,7 +40,9 @@ function testBlackBoxStack() {
 }
 
 function testBlackBoxSource() {
+  dump('JWL ' + getSourceActor(gSources, BLACKBOXME_URL) + '\n');
   return toggleBlackBoxing(gPanel, getSourceActor(gSources, BLACKBOXME_URL)).then(aSource => {
+    dump('JWL ' + JSON.stringify(aSource) + '\n');
     ok(aSource.isBlackBoxed, "The source should be black boxed now.");
 
     is(gFrames.itemCount, 3,

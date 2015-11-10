@@ -53,6 +53,7 @@ function testToggleGeneratedSource() {
   });
 
   gOptions._showOriginalSourceItem.setAttribute("checked", "false");
+  dump('JWL toggling\n');
   gOptions._toggleShowOriginalSource();
   gOptions._onPopupHidden();
 
