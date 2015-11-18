@@ -1,0 +1,261 @@
+<!DOCTYPE HTML>
+<html lang="en" >
+    
+    <head>
+        
+        <meta charset="UTF-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+        <title>SVGs | Firefox Developer Tools</title>
+        <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
+        <meta name="description" content="">
+        <meta name="generator" content="GitBook 2.5.2">
+        
+        
+        <meta name="HandheldFriendly" content="true"/>
+        <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+        <meta name="apple-mobile-web-app-capable" content="yes">
+        <meta name="apple-mobile-web-app-status-bar-style" content="black">
+        <link rel="apple-touch-icon-precomposed" sizes="152x152" href="gitbook/images/apple-touch-icon-precomposed-152.png">
+        <link rel="shortcut icon" href="gitbook/images/favicon.ico" type="image/x-icon">
+        
+    <link rel="stylesheet" href="gitbook/style.css">
+    
+        
+        <link rel="stylesheet" href="gitbook/plugins/gitbook-plugin-highlight/website.css">
+        
+    
+        
+        <link rel="stylesheet" href="gitbook/plugins/gitbook-plugin-search/search.css">
+        
+    
+        
+        <link rel="stylesheet" href="gitbook/plugins/gitbook-plugin-fontsettings/website.css">
+        
+    
+    
+
+        
+    
+    
+    
+    <link rel="prev" href="./accordion.html" />
+    
+
+        <script type="text/javascript" src="static/js/bundle.js"></script><script type="text/javascript" src="static/js/globals.js"></script>
+    </head>
+    <body>
+        
+        
+    <div class="book" data-level="2" data-chapter-title="SVGs" data-filepath="svgs.md" data-basepath="." data-revision="Wed Nov 18 2015 15:37:20 GMT-0500 (EST)">
+    
+
+<div class="book-summary">
+    <nav role="navigation">
+        <ul class="summary">
+            
+            
+            
+            
+
+            
+
+            
+    
+        <li class="chapter " data-level="0" data-path="index.html">
+            
+                
+                    <a href="./index.html">
+                
+                        <i class="fa fa-check"></i>
+                        
+                        Introduction
+                    </a>
+            
+            
+        </li>
+    
+        <li class="chapter " data-level="1" data-path="components.html">
+            
+                
+                    <a href="./components.html">
+                
+                        <i class="fa fa-check"></i>
+                        
+                            <b>1.</b>
+                        
+                        Components
+                    </a>
+            
+            
+            <ul class="articles">
+                
+    
+        <li class="chapter " data-level="1.1" data-path="accordion.html">
+            
+                
+                    <a href="./accordion.html">
+                
+                        <i class="fa fa-check"></i>
+                        
+                            <b>1.1.</b>
+                        
+                        Accordion
+                    </a>
+            
+            
+        </li>
+    
+
+            </ul>
+            
+        </li>
+    
+        <li class="chapter active" data-level="2" data-path="svgs.html">
+            
+                
+                    <a href="./svgs.html">
+                
+                        <i class="fa fa-check"></i>
+                        
+                            <b>2.</b>
+                        
+                        SVGs
+                    </a>
+            
+            
+        </li>
+    
+
+
+            
+            <li class="divider"></li>
+            <li>
+                <a href="https://www.gitbook.com" target="blank" class="gitbook-link">
+                    Published with GitBook
+                </a>
+            </li>
+            
+        </ul>
+    </nav>
+</div>
+
+    <div class="book-body">
+        <div class="body-inner">
+            <div class="book-header" role="navigation">
+    <!-- Actions Left -->
+    
+
+    <!-- Title -->
+    <h1>
+        <i class="fa fa-circle-o-notch fa-spin"></i>
+        <a href="./" >Firefox Developer Tools</a>
+    </h1>
+</div>
+
+            <div class="page-wrapper" tabindex="-1" role="main">
+                <div class="page-inner">
+                
+                
+                    <section class="normal" id="section-">
+                    
+                        <h1 id="panel-svgs">Panel SVGs</h1>
+<p>If you&apos;d like to create an icon for a panel you&apos;ve made for devtools, this is meant to be a handy guide for making sure you SVGs are compressed and neatly formatted as possible :tada:</p>
+<h2 id="table-of-contents">Table of Contents</h2>
+<ol>
+<li><a href="#explanation-of-pixel-grid">Explanation of Pixel Grid</a></li>
+<li><a href="#tips-for-illustrator-svgs">Tips for Illustrator SVGs</a></li>
+<li><a href="#contributing-other-design-workflows">Contributing Other Design Workflows</a></li>
+<li><a href="#bash-script-for-cleaning-svgs">Bash Script for Cleaning SVGs</a></li>
+<li><a href="#contributing-code">Contributing Code</a></li>
+</ol>
+<!--- 5. [Node Script](#node-script) -->
+<!--- 6. [Grunt/Gulp Packages](#grunt-gulp-packages) -->
+<h3 id="explanation-of-pixel-grid">Explanation of Pixel Grid</h3>
+<p>Since so many of our SVGs appear so small, designing them on the pixel grid will help them not appear fuzzy when they&#x2019;re sized down to 16x16 pixels.</p>
+<p>For Illustrator you&#x2019;ll want the following settings:</p>
+<ul>
+<li><strong>Document settings</strong>: <code>Units: pixels</code>, <code>Advanced</code> &gt; check <code>Align New Objects to Pixel Grid</code></li>
+<li><strong>Transform Panel</strong>: for existing artwork not on pixel grid, select and then within <code>Transform</code> &gt; <code>Advanced</code> &gt; check <code>Align to Pixel Grid</code></li>
+</ul>
+<p>You can get a more detailed breakdown with images <a href="http://medialoot.com/blog/3-valuable-pixel-perfect-illustrator-techniques/" target="_blank">here</a>.</p>
+<p>You can download a sample Illustrator file <a href="svgs/pixel-grid-illustrator.ai">here</a>.</p>
+<!--- You can download a sample Sketch file [here](svgs/pixel-grid-sketch.sketch). -->
+<h3 id="tips-for-illustrator-svgs">Tips for Illustrator SVGs</h3>
+<p>When you&#x2019;re designing your icons in a graphics editor like Adobe Illustrator, there are a lot of things you can do that will bring down the size of the file and make your SVGs easier for the developers to work with. Here are some of them:</p>
+<ul>
+<li><strong>Expand paths</strong>: Instead of having multiple shapes overlapping each other, expand shapes using the pathfinder.
+<img src="svgs/pathfinder.gif" alt="Use pathfinder to expand shapes"></li>
+<li>Simplify paths (<code>Object</code> &gt; <code>Path</code> &gt; <code>Simplify</code>)</li>
+<li>Expand objects so that stokes become objects. This has the added benefit of keeping the stroke size intact as the SVG is resized.
+<img src="svgs/expand-strokes.gif" alt="Expand strokes to make them objects"></li>
+</ul>
+<h4 id="devtoolsspecific-requests">Devtools-Specific Requests</h4>
+<p>The devtools panel icons do a couple of things in a specific way; following these guidelines will help stick your patch:</p>
+<ol>
+<li><strong>Inline fill colors.</strong> Devtools panel icons all use <code>fill=whitesmoke</code> in the <code>&lt;svg&gt;</code> tag.</li>
+<li><strong>Inline opacities.</strong> Devtools panel icons also inline opacities on their relevant path.</li>
+</ol>
+<h3 id="contributing-other-design-workflows">Contributing Other Design Workflows</h3>
+<p>If you&#x2019;re using a design tool that isn&#x2019;t listed here and you&#x2019;d like to add the instructions for how to expand paths, simplify paths, expand strokes, etc., please <a href="https://github.com/nt1m/firefox-svg-icons/compare?expand=1" target="_blank">open a PR</a>! We&#x2019;d super appreciate it + you&#x2019;d be the best :100:</p>
+<!--- Additionally, please feel free to look through the issues tagged with ```design``` to find known workflows we’d like to add. -->
+<!--- If you’ve found an issue with any of the design flows, please let us know by [opening an issue]() and tagging it with a ```design``` label. -->
+<h3 id="bash-script-for-cleaning-svgs-installation">Bash Script for Cleaning SVGs (Installation)</h3>
+<p>The executable for cleaning svgs can be found <a href="svgs/clean-svg">here</a>. Its corresponding header can be found <a href="svgs/header.txt">here</a>.</p>
+<ol>
+<li>Save both files. <a href="svgs/clean-svg"><code>clean-svg</code> executable</a> | <a href="svgs/header.txt"><code>header.txt</code></a></li>
+<li><code>npm install -g svgo</code> (Installation instructions for Node can be found <a href="https://nodejs.org/en/" target="_blank">here</a>.)</li>
+<li>Move both the executable and <code>header.txt</code> to <code>usr/local/bin</code>.</li>
+<li>Make the bash script executable with <code>chmod 755 clean-svg</code>.</li>
+</ol>
+<p>Now you can call <code>clean-svg</code> from anywhere on your system to clean up SVGs according to the Firefox guidelines.</p>
+<p><em>Please note</em>: this script edits the first <code>&lt;svg&gt;</code> line of the file to have a specific viewport and fill color; locally you might want to change this to fit your needs.</p>
+<!--- ### Node Script -->
+<!--- ### Gulp/Grunt Packages -->
+<h3 id="contributing-code">Contributing Code</h3>
+<p>We have a bunch of things we&apos;d like to include for version 1.0; feel free to take a look at <a href="https://github.com/nt1m/firefox-svg-icons/milestones/v1.0" target="_blank">everything in milestone 1</a> and take a crack at any of them.</p>
+<!--- https://wiki.mozilla.org/DevTools/Hacking#Chrome_Themes, useful info for adding them in once they're done -->
+                    
+                    </section>
+                
+                
+                </div>
+            </div>
+        </div>
+
+        
+        <a href="./accordion.html" class="navigation navigation-prev navigation-unique" aria-label="Previous page: Accordion"><i class="fa fa-angle-left"></i></a>
+        
+        
+    </div>
+</div>
+
+        
+<script src="gitbook/app.js"></script>
+
+    
+    <script src="gitbook/plugins/gitbook-plugin-search/lunr.min.js"></script>
+    
+
+    
+    <script src="gitbook/plugins/gitbook-plugin-search/search.js"></script>
+    
+
+    
+    <script src="gitbook/plugins/gitbook-plugin-sharing/buttons.js"></script>
+    
+
+    
+    <script src="gitbook/plugins/gitbook-plugin-fontsettings/buttons.js"></script>
+    
+
+<script>
+require(["gitbook"], function(gitbook) {
+    var config = {"addcssjs":{"js":["static/js/bundle.js","static/js/globals.js"]},"highlight":{},"search":{},"sharing":{"facebook":true,"twitter":true,"google":false,"weibo":false,"instapaper":false,"vk":false,"all":["facebook","google","twitter","weibo","instapaper"]},"fontsettings":{"theme":"white","family":"sans","size":2}};
+    gitbook.start(config);
+});
+</script>
+
+        
+    </body>
+    
+</html>
