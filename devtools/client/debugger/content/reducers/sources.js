@@ -20,10 +20,10 @@ function update(state = getInitialState(), action, emit) {
   switch(action.type) {
   case constants.ADD_SOURCE:
     emit('source', action.source);
-    return mergeIn(state, ['sources', action.source.actor], action.source);
+    return setIn(state, ['sources', action.source.actor], action.source);
 
   case constants.LOAD_SOURCES:
-    if(action.status === 'done') {
+    if (action.status === 'done') {
       // We don't need to actually load the sources into the state.
       // Loading sources actually forces the server to emit several
       // individual newSources packets which will eventually fire
@@ -84,23 +84,7 @@ function update(state = getInitialState(), action, emit) {
     // Reset the entire state to just the initial state, a blank state
     // if you will.
     return getInitialState();
-
-  case constants.RELOAD: {
-    Object.keys(state.sources).forEach(k => {
-      emit('source', state.sources[k]);
-    });
-    emit('sources', state.sources);
-
-    const selectedSource = state.selectedSource;
-    if(selectedSource && state.sourcesText[selectedSource]) {
-      const source = state.sources[selectedSource];
-      emit('source-selected', source);
-      emit('source-selected-ready', {
-        source: source,
-        opts: state.selectedSourceOpts
-      });
-    }
-  }}
+  }
 
   return state;
 }

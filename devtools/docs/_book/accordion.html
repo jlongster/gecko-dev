@@ -1,0 +1,240 @@
+<!DOCTYPE HTML>
+<html lang="en" >
+    
+    <head>
+        
+        <meta charset="UTF-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+        <title>Accordion | Firefox Developer Tools</title>
+        <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
+        <meta name="description" content="">
+        <meta name="generator" content="GitBook 2.5.2">
+        
+        
+        <meta name="HandheldFriendly" content="true"/>
+        <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+        <meta name="apple-mobile-web-app-capable" content="yes">
+        <meta name="apple-mobile-web-app-status-bar-style" content="black">
+        <link rel="apple-touch-icon-precomposed" sizes="152x152" href="gitbook/images/apple-touch-icon-precomposed-152.png">
+        <link rel="shortcut icon" href="gitbook/images/favicon.ico" type="image/x-icon">
+        
+    <link rel="stylesheet" href="gitbook/style.css">
+    
+        
+        <link rel="stylesheet" href="gitbook/plugins/gitbook-plugin-highlight/website.css">
+        
+    
+        
+        <link rel="stylesheet" href="gitbook/plugins/gitbook-plugin-search/search.css">
+        
+    
+        
+        <link rel="stylesheet" href="gitbook/plugins/gitbook-plugin-fontsettings/website.css">
+        
+    
+    
+
+        
+    
+    
+    
+    <link rel="prev" href="./components.html" />
+    
+
+        <script type="text/javascript" src="static/js/bundle.js"></script><script type="text/javascript" src="static/js/globals.js"></script>
+    </head>
+    <body>
+        
+        
+    <div class="book" data-level="1.1" data-chapter-title="Accordion" data-filepath="accordion.md" data-basepath="." data-revision="Wed Nov 18 2015 13:25:17 GMT-0500 (EST)">
+    
+
+<div class="book-summary">
+    <nav role="navigation">
+        <ul class="summary">
+            
+            
+            
+            
+
+            
+
+            
+    
+        <li class="chapter " data-level="0" data-path="index.html">
+            
+                
+                    <a href="./index.html">
+                
+                        <i class="fa fa-check"></i>
+                        
+                        Introduction
+                    </a>
+            
+            
+        </li>
+    
+        <li class="chapter " data-level="1" data-path="components.html">
+            
+                
+                    <a href="./components.html">
+                
+                        <i class="fa fa-check"></i>
+                        
+                            <b>1.</b>
+                        
+                        Components
+                    </a>
+            
+            
+            <ul class="articles">
+                
+    
+        <li class="chapter active" data-level="1.1" data-path="accordion.html">
+            
+                
+                    <a href="./accordion.html">
+                
+                        <i class="fa fa-check"></i>
+                        
+                            <b>1.1.</b>
+                        
+                        Accordion
+                    </a>
+            
+            
+        </li>
+    
+
+            </ul>
+            
+        </li>
+    
+
+
+            
+            <li class="divider"></li>
+            <li>
+                <a href="https://www.gitbook.com" target="blank" class="gitbook-link">
+                    Published with GitBook
+                </a>
+            </li>
+            
+        </ul>
+    </nav>
+</div>
+
+    <div class="book-body">
+        <div class="body-inner">
+            <div class="book-header" role="navigation">
+    <!-- Actions Left -->
+    
+
+    <!-- Title -->
+    <h1>
+        <i class="fa fa-circle-o-notch fa-spin"></i>
+        <a href="./" >Firefox Developer Tools</a>
+    </h1>
+</div>
+
+            <div class="page-wrapper" tabindex="-1" role="main">
+                <div class="page-inner">
+                
+                
+                    <section class="normal" id="section-">
+                    
+                        <h1 id="accordion">Accordion</h1>
+<p>Here is the accordion. You can use it like this:</p>
+<pre><code class="lang-js">Accordion({
+  style: { backgroundColor: <span class="hljs-string">&apos;#f0f0f0&apos;</span> },
+  groups: {
+    Names: Names(),
+    Tools: Tools()
+  }
+})
+</code></pre>
+<h2 id="live-demo">Live Demo</h2>
+<div id="example1"></div>
+
+<script>
+var Names = React.createClass({
+  render: function() {
+    return React.DOM.ul(
+      null,
+      React.DOM.li(null, 'James'),
+      React.DOM.li(null, 'Jordan'),
+      React.DOM.li(null, 'Helen')
+    )
+  }
+});
+
+var Tools = React.createClass({
+  render: function() {
+    return React.DOM.ul(
+      null,
+      React.DOM.li(null, 'Debugger'),
+      React.DOM.li(null, 'Inspector'),
+      React.DOM.li(null, 'Performance')
+    )
+  }
+});
+
+React.render(
+  React.createElement(
+    components.Accordion,
+    { style: { backgroundColor: '#f0f0f0' },
+      groups: {
+        Names: React.createElement(Names),
+        Tools: React.createElement(Tools)
+      }
+    }
+  ),
+  document.querySelector('#example1')
+)
+</script>
+
+                    
+                    </section>
+                
+                
+                </div>
+            </div>
+        </div>
+
+        
+        <a href="./components.html" class="navigation navigation-prev navigation-unique" aria-label="Previous page: Components"><i class="fa fa-angle-left"></i></a>
+        
+        
+    </div>
+</div>
+
+        
+<script src="gitbook/app.js"></script>
+
+    
+    <script src="gitbook/plugins/gitbook-plugin-search/lunr.min.js"></script>
+    
+
+    
+    <script src="gitbook/plugins/gitbook-plugin-search/search.js"></script>
+    
+
+    
+    <script src="gitbook/plugins/gitbook-plugin-sharing/buttons.js"></script>
+    
+
+    
+    <script src="gitbook/plugins/gitbook-plugin-fontsettings/buttons.js"></script>
+    
+
+<script>
+require(["gitbook"], function(gitbook) {
+    var config = {"addcssjs":{"js":["static/js/bundle.js","static/js/globals.js"]},"highlight":{},"search":{},"sharing":{"facebook":true,"twitter":true,"google":false,"weibo":false,"instapaper":false,"vk":false,"all":["facebook","google","twitter","weibo","instapaper"]},"fontsettings":{"theme":"white","family":"sans","size":2}};
+    gitbook.start(config);
+});
+</script>
+
+        
+    </body>
+    
+</html>

@@ -1,0 +1,9 @@
+{
+  "plugins": ["addcssjs"],
+  "pluginsConfig": {
+    "addcssjs": {
+      "js": ["static/js/bundle.js",
+             "static/js/globals.js"]
+    }
+  }
+}

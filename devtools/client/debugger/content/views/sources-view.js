@@ -218,6 +218,7 @@ SourcesView.prototype = Heritage.extend(WidgetMethods, {
   },
 
   renderSources: function(sources) {
+    // TODO(jwl): explain why this and emit('sources') is needed
     if(Object.keys(sources).length === 0) {
       this.emptyText = L10N.getStr("noSourcesText");
     }
