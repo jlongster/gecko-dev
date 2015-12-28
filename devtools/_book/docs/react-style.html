@@ -1,0 +1,379 @@
+<!DOCTYPE HTML>
+<html lang="en" >
+    
+    <head>
+        
+        <meta charset="UTF-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+        <title>React Style Guide | Firefox Developer Tools</title>
+        <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
+        <meta name="description" content="">
+        <meta name="generator" content="GitBook 2.5.2">
+        
+        
+        <meta name="HandheldFriendly" content="true"/>
+        <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+        <meta name="apple-mobile-web-app-capable" content="yes">
+        <meta name="apple-mobile-web-app-status-bar-style" content="black">
+        <link rel="apple-touch-icon-precomposed" sizes="152x152" href="../gitbook/images/apple-touch-icon-precomposed-152.png">
+        <link rel="shortcut icon" href="../gitbook/images/favicon.ico" type="image/x-icon">
+        
+    <link rel="stylesheet" href="../gitbook/style.css">
+    
+        
+        <link rel="stylesheet" href="../gitbook/plugins/gitbook-plugin-highlight/website.css">
+        
+    
+        
+        <link rel="stylesheet" href="../gitbook/plugins/gitbook-plugin-search/search.css">
+        
+    
+        
+        <link rel="stylesheet" href="../gitbook/plugins/gitbook-plugin-fontsettings/website.css">
+        
+    
+    
+
+        
+    
+    
+    <link rel="next" href="../docs/components.html" />
+    
+    
+    <link rel="prev" href="../docs/inspector-panel.html" />
+    
+
+        <script type="text/javascript" src="../docs/static/js/bundle.js"></script><script type="text/javascript" src="../docs/static/js/globals.js"></script>
+    </head>
+    <body>
+        
+        
+    <div class="book" data-level="3" data-chapter-title="React Style Guide" data-filepath="docs/react-style.md" data-basepath=".." data-revision="Mon Dec 28 2015 00:43:50 GMT-0500 (EST)">
+    
+
+<div class="book-summary">
+    <nav role="navigation">
+        <ul class="summary">
+            
+            
+            
+            
+
+            
+
+            
+    
+        <li class="chapter " data-level="0" data-path="index.html">
+            
+                
+                    <a href="../index.html">
+                
+                        <i class="fa fa-check"></i>
+                        
+                        Introduction
+                    </a>
+            
+            
+        </li>
+    
+        <li class="chapter " data-level="1" data-path="docs/index.html">
+            
+                
+                    <a href="../docs/index.html">
+                
+                        <i class="fa fa-check"></i>
+                        
+                            <b>1.</b>
+                        
+                        Introduction
+                    </a>
+            
+            
+        </li>
+    
+        <li class="chapter " data-level="2" data-path="docs/tools.html">
+            
+                
+                    <a href="../docs/tools.html">
+                
+                        <i class="fa fa-check"></i>
+                        
+                            <b>2.</b>
+                        
+                        Tools
+                    </a>
+            
+            
+            <ul class="articles">
+                
+    
+        <li class="chapter " data-level="2.1" data-path="docs/inspector-panel.html">
+            
+                
+                    <a href="../docs/inspector-panel.html">
+                
+                        <i class="fa fa-check"></i>
+                        
+                            <b>2.1.</b>
+                        
+                        Inspector
+                    </a>
+            
+            
+        </li>
+    
+
+            </ul>
+            
+        </li>
+    
+        <li class="chapter active" data-level="3" data-path="docs/react-style.html">
+            
+                
+                    <a href="../docs/react-style.html">
+                
+                        <i class="fa fa-check"></i>
+                        
+                            <b>3.</b>
+                        
+                        React Style Guide
+                    </a>
+            
+            
+        </li>
+    
+        <li class="chapter " data-level="4" data-path="docs/components.html">
+            
+                
+                    <a href="../docs/components.html">
+                
+                        <i class="fa fa-check"></i>
+                        
+                            <b>4.</b>
+                        
+                        Components
+                    </a>
+            
+            
+            <ul class="articles">
+                
+    
+        <li class="chapter " data-level="4.1" data-path="client/debugger/content/components/box.html">
+            
+                
+                    <a href="../client/debugger/content/components/box.html">
+                
+                        <i class="fa fa-check"></i>
+                        
+                            <b>4.1.</b>
+                        
+                        Box &amp; Panel
+                    </a>
+            
+            
+        </li>
+    
+
+            </ul>
+            
+        </li>
+    
+
+
+            
+            <li class="divider"></li>
+            <li>
+                <a href="https://www.gitbook.com" target="blank" class="gitbook-link">
+                    Published with GitBook
+                </a>
+            </li>
+            
+        </ul>
+    </nav>
+</div>
+
+    <div class="book-body">
+        <div class="body-inner">
+            <div class="book-header" role="navigation">
+    <!-- Actions Left -->
+    
+
+    <!-- Title -->
+    <h1>
+        <i class="fa fa-circle-o-notch fa-spin"></i>
+        <a href="../" >Firefox Developer Tools</a>
+    </h1>
+</div>
+
+            <div class="page-wrapper" tabindex="-1" role="main">
+                <div class="page-inner">
+                
+                
+                    <section class="normal" id="section-">
+                    
+                        <h1 id="react-style-guide">React Style Guide</h1>
+<p>This is a guide for how to write good React components. It applies to
+everything from generic, reusable components to app-specific
+components.</p>
+<h2 id="requirements">Requirements</h2>
+<p>When writing a React component, follow the following rules:</p>
+<ol>
+<li>Only one React component per-file</li>
+<li>Always add the <code>displayName</code> property</li>
+<li>Always add the <code>propTypes</code> property to specify the required/optional properties</li>
+<li>Use the <code>React.DOM</code> methods to construct DOM elements, preferrably assigning it to <code>dom</code> so it looks like <code>dom.div(...)</code></li>
+<li>When importing custom components, always wrap them with <code>React.createFactory</code> so you can instantiate them with a function call. Avoid using <code>React.createElement</code>.</li>
+<li><strong>Avoid local state</strong> and <code>setState</code> calls. Preferrably, only take properties and render something out.</li>
+</ol>
+<h2 id="writing-generic-components">Writing Generic Components</h2>
+<p>The React community has gone through several patterns for how to
+compose React components, but it generally has settled on a few
+techniques. Which one you use depends on the type of component you are
+building.</p>
+<h3 id="using-propschildren">Using <code>props.children</code></h3>
+<p>The simplest way to make a component more generic is to allow
+customize of its contents. This is super easy with React, you can just
+use the <code>this.props.children</code> to access any elements passed in as children:</p>
+<pre><code class="lang-js"><span class="hljs-keyword">const</span> Square = React.createClass({
+  render: <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>) </span>{
+    <span class="hljs-keyword">return</span> dom.div({ style: {...}},
+                   <span class="hljs-keyword">this</span>.props.children)
+  }
+})
+
+<span class="hljs-comment">// Square({}, dom.div({}, &quot;Hello!&quot;))</span>
+</code></pre>
+<h3 id="componentsfunctions-as-props">Components/Functions as Props</h3>
+<p>Sometimes you want more control over how the elements are created, so
+you can accept a component or a function as a property. If you accept
+a component, you can instantiate it however you like. This is useful
+if you are building a component like a list, where the user can pass
+in any kind of row component they wish.</p>
+<p>If you accept a function, you can still instantiate it however you
+like but the user can dynamically change the component per-call.</p>
+<pre><code class="lang-js"><span class="hljs-keyword">const</span> List = React.createClass({
+  render: <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>) </span>{
+    <span class="hljs-keyword">return</span> dom.div(
+      { className: <span class="hljs-string">&apos;list&apos;</span> },
+      <span class="hljs-keyword">this</span>.props.items.map(item =&gt; {
+        React.createElement(<span class="hljs-keyword">this</span>.props.rowComponent, { item })
+      })
+    )
+  }
+})
+
+<span class="hljs-comment">// List({ items: items, rowComponent: React.createClass(...) })</span>
+
+<span class="hljs-comment">// Or accept a function:</span>
+
+<span class="hljs-keyword">this</span>.props.items.map(item =&gt; {
+  React.createElement(<span class="hljs-keyword">this</span>.props.getRowComponent(item), { item })
+})
+
+<span class="hljs-comment">// List({ items: items, getRowComponent: item =&gt; { ... } })</span>
+</code></pre>
+<h3 id="hgherorder-components">Hgher-order Components</h3>
+<p>The last and most advanced technique is create a higher-order
+component. These are powerful because it allows you to separate out
+behaviors into individual components and apply them wherever you want.</p>
+<p>A higher-order component is just like a higher-order function: it is a
+component that is created from another component. The interface for
+doing this still just a function: you pass in a component and you get
+back the higher-order component.</p>
+<p>For example, assume we have the same <code>List</code> component above but we
+only want to render the items in view. Let&apos;s create a <code>pagedList</code>
+function that adds this basic optimization. Here&apos;s what it looks like
+(and this is untested code):</p>
+<pre><code class="lang-js"><span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">pagedList</span>(<span class="hljs-params">list</span>) </span>{
+  <span class="hljs-keyword">return</span> React.createClass({
+    getInitialState: <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>) </span>{
+      <span class="hljs-keyword">return</span> { currentIndex: <span class="hljs-number">0</span> }
+    },
+
+    updateIndex: <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>) </span>{
+      <span class="hljs-comment">// Calculate new index...</span>
+      <span class="hljs-keyword">this</span>.setState({ currentIndex: newIndex });
+    },
+
+    render: <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>) </span>{
+      <span class="hljs-keyword">const</span> { currentIndex } = <span class="hljs-keyword">this</span>.state;
+      <span class="hljs-keyword">if</span>(<span class="hljs-keyword">this</span>.props.pageSize) {
+        <span class="hljs-keyword">const</span> slice = <span class="hljs-keyword">this</span>.props.items.slice(
+          currentIndex,
+          currentIndex + <span class="hljs-keyword">this</span>.props.pageSize
+        );
+        React.createElement(list, {
+          items: slice,
+          onScroll: <span class="hljs-keyword">this</span>.updateIndex
+        });
+      }
+      <span class="hljs-keyword">else</span> {
+        React.createElement(list, { items: <span class="hljs-keyword">this</span>.props.items })
+      }
+    }
+  })
+}
+</code></pre>
+<p>Usually higher-order components are created when exporting a simple
+component. So in the <code>List</code> component definition, instead of just
+exporting <code>List</code> we would do:</p>
+<pre><code class="lang-js"><span class="hljs-built_in">module</span>.exports = pagedList(List)
+</code></pre>
+<p>The point is, we don&apos;t care <em>what kind</em> of list this is. Maybe you
+have 10 different kinds of lists. They can all benefit from this
+optimization now.</p>
+<p>The
+<a href="https://github.com/rackt/react-redux/blob/master/docs/api.md#connectmapstatetoprops-mapdispatchtoprops-mergeprops-options" target="_blank"><code>connect</code></a>
+function provided by react-redux is another example of a higher-order component function.</p>
+
+                    
+                    </section>
+                
+                
+                </div>
+            </div>
+        </div>
+
+        
+        <a href="../docs/inspector-panel.html" class="navigation navigation-prev " aria-label="Previous page: Inspector"><i class="fa fa-angle-left"></i></a>
+        
+        
+        <a href="../docs/components.html" class="navigation navigation-next " aria-label="Next page: Components"><i class="fa fa-angle-right"></i></a>
+        
+    </div>
+</div>
+
+        
+<script src="../gitbook/app.js"></script>
+
+    
+    <script src="../gitbook/plugins/gitbook-plugin-search/lunr.min.js"></script>
+    
+
+    
+    <script src="../gitbook/plugins/gitbook-plugin-search/search.js"></script>
+    
+
+    
+    <script src="../gitbook/plugins/gitbook-plugin-sharing/buttons.js"></script>
+    
+
+    
+    <script src="../gitbook/plugins/gitbook-plugin-fontsettings/buttons.js"></script>
+    
+
+    
+    <script src="../gitbook/plugins/gitbook-plugin-livereload/plugin.js"></script>
+    
+
+<script>
+require(["gitbook"], function(gitbook) {
+    var config = {"addcssjs":{"js":["docs/static/js/bundle.js","docs/static/js/globals.js"]},"highlight":{},"search":{},"sharing":{"facebook":true,"twitter":true,"google":false,"weibo":false,"instapaper":false,"vk":false,"all":["facebook","google","twitter","weibo","instapaper"]},"fontsettings":{"theme":"white","family":"sans","size":2},"livereload":{}};
+    gitbook.start(config);
+});
+</script>
+
+        
+    </body>
+    
+</html>

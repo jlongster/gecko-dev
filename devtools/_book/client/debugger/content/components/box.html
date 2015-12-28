@@ -1,0 +1,338 @@
+<!DOCTYPE HTML>
+<html lang="en" >
+    
+    <head>
+        
+        <meta charset="UTF-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+        <title>Box &amp; Panel | Firefox Developer Tools</title>
+        <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
+        <meta name="description" content="">
+        <meta name="generator" content="GitBook 2.5.2">
+        
+        
+        <meta name="HandheldFriendly" content="true"/>
+        <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+        <meta name="apple-mobile-web-app-capable" content="yes">
+        <meta name="apple-mobile-web-app-status-bar-style" content="black">
+        <link rel="apple-touch-icon-precomposed" sizes="152x152" href="../../../../gitbook/images/apple-touch-icon-precomposed-152.png">
+        <link rel="shortcut icon" href="../../../../gitbook/images/favicon.ico" type="image/x-icon">
+        
+    <link rel="stylesheet" href="../../../../gitbook/style.css">
+    
+        
+        <link rel="stylesheet" href="../../../../gitbook/plugins/gitbook-plugin-highlight/website.css">
+        
+    
+        
+        <link rel="stylesheet" href="../../../../gitbook/plugins/gitbook-plugin-search/search.css">
+        
+    
+        
+        <link rel="stylesheet" href="../../../../gitbook/plugins/gitbook-plugin-fontsettings/website.css">
+        
+    
+    
+
+        
+    
+    
+    
+    <link rel="prev" href="../../../../docs/components.html" />
+    
+
+        <script type="text/javascript" src="../../../../docs/static/js/bundle.js"></script><script type="text/javascript" src="../../../../docs/static/js/globals.js"></script>
+    </head>
+    <body>
+        
+        
+    <div class="book" data-level="4.1" data-chapter-title="Box &amp; Panel" data-filepath="client/debugger/content/components/box.md" data-basepath="../../../.." data-revision="Mon Dec 28 2015 00:43:50 GMT-0500 (EST)">
+    
+
+<div class="book-summary">
+    <nav role="navigation">
+        <ul class="summary">
+            
+            
+            
+            
+
+            
+
+            
+    
+        <li class="chapter " data-level="0" data-path="index.html">
+            
+                
+                    <a href="../../../../index.html">
+                
+                        <i class="fa fa-check"></i>
+                        
+                        Introduction
+                    </a>
+            
+            
+        </li>
+    
+        <li class="chapter " data-level="1" data-path="docs/index.html">
+            
+                
+                    <a href="../../../../docs/index.html">
+                
+                        <i class="fa fa-check"></i>
+                        
+                            <b>1.</b>
+                        
+                        Introduction
+                    </a>
+            
+            
+        </li>
+    
+        <li class="chapter " data-level="2" data-path="docs/tools.html">
+            
+                
+                    <a href="../../../../docs/tools.html">
+                
+                        <i class="fa fa-check"></i>
+                        
+                            <b>2.</b>
+                        
+                        Tools
+                    </a>
+            
+            
+            <ul class="articles">
+                
+    
+        <li class="chapter " data-level="2.1" data-path="docs/inspector-panel.html">
+            
+                
+                    <a href="../../../../docs/inspector-panel.html">
+                
+                        <i class="fa fa-check"></i>
+                        
+                            <b>2.1.</b>
+                        
+                        Inspector
+                    </a>
+            
+            
+        </li>
+    
+
+            </ul>
+            
+        </li>
+    
+        <li class="chapter " data-level="3" data-path="docs/react-style.html">
+            
+                
+                    <a href="../../../../docs/react-style.html">
+                
+                        <i class="fa fa-check"></i>
+                        
+                            <b>3.</b>
+                        
+                        React Style Guide
+                    </a>
+            
+            
+        </li>
+    
+        <li class="chapter " data-level="4" data-path="docs/components.html">
+            
+                
+                    <a href="../../../../docs/components.html">
+                
+                        <i class="fa fa-check"></i>
+                        
+                            <b>4.</b>
+                        
+                        Components
+                    </a>
+            
+            
+            <ul class="articles">
+                
+    
+        <li class="chapter active" data-level="4.1" data-path="client/debugger/content/components/box.html">
+            
+                
+                    <a href="../../../../client/debugger/content/components/box.html">
+                
+                        <i class="fa fa-check"></i>
+                        
+                            <b>4.1.</b>
+                        
+                        Box &amp; Panel
+                    </a>
+            
+            
+        </li>
+    
+
+            </ul>
+            
+        </li>
+    
+
+
+            
+            <li class="divider"></li>
+            <li>
+                <a href="https://www.gitbook.com" target="blank" class="gitbook-link">
+                    Published with GitBook
+                </a>
+            </li>
+            
+        </ul>
+    </nav>
+</div>
+
+    <div class="book-body">
+        <div class="body-inner">
+            <div class="book-header" role="navigation">
+    <!-- Actions Left -->
+    
+
+    <!-- Title -->
+    <h1>
+        <i class="fa fa-circle-o-notch fa-spin"></i>
+        <a href="../../../../" >Firefox Developer Tools</a>
+    </h1>
+</div>
+
+            <div class="page-wrapper" tabindex="-1" role="main">
+                <div class="page-inner">
+                
+                
+                    <section class="normal" id="section-">
+                    
+                        <h1 id="box--panel">Box &amp; Panel</h1>
+<p>A <code>Box</code> component represents an instance of a flexbox container that
+has panels inside of it (think of an element with <code>display: flex</code>). A
+<code>Panel</code> component represents a child of a flexbox container (an
+element with various <code>flex</code> properties).</p>
+<p>A <code>Panel</code> has additional behaviors than basic elements, like the
+ability to be &quot;closed&quot; and the ability to be resized dynamically
+(TODO).</p>
+<p>Using just these two components, you can perform complex layouts that
+satisfy most of the needs for your tool.</p>
+<h2 id="properties">Properties</h2>
+<h3 id="panel">Panel</h3>
+<ul>
+<li><strong>closed</strong> - boolean, <code>true</code> if the element should not be displayed</li>
+<li><strong>shrink</strong> - boolean, <code>true</code> if the panel should only take up as much space as needed</li>
+<li><strong>size</strong> - number|string, the static width or height of the element</li>
+</ul>
+<p>A <code>Panel</code> should only be given one child element. It will not render
+an intermediate DOM element, but instead will render the child element
+with the generated flex properties. This is necessary for the layout
+to work.</p>
+<h3 id="box">Box</h3>
+<ul>
+<li><strong>vertical</strong> - boolean, <code>true</code> for child panels to flow vertically</li>
+</ul>
+<h2 id="examples">Examples</h2>
+<p>This shows 3 panels, the first two which will take up as much space as
+the can and the third one at a fixed size of 50px.</p>
+<pre><code class="lang-js">Box(
+  <span class="hljs-literal">null</span>,
+  Panel(<span class="hljs-literal">null</span>,
+        div({ style: { backgroundColor: <span class="hljs-string">&apos;tomato&apos;</span> }}, <span class="hljs-string">&apos;Panel1&apos;</span>)),
+  Panel(<span class="hljs-literal">null</span>,
+        div({ style: { backgroundColor: <span class="hljs-string">&apos;skyblue&apos;</span> }}, <span class="hljs-string">&apos;Panel2&apos;</span>)),
+  Panel({ size: <span class="hljs-number">50</span> },
+        div({ style: { backgroundColor: <span class="hljs-string">&apos;wheat&apos;</span> }}, <span class="hljs-string">&apos;Panel3&apos;</span>))
+)
+</code></pre>
+<div id="example1" style="margin: 1.5em 0"></div>
+
+<p>This shows 2 panels laid out vertically, with the second panel taking
+as little space as it can.</p>
+<pre><code class="lang-js">Box(
+  { vertical: <span class="hljs-literal">true</span>,
+    style: { height: <span class="hljs-number">100</span> }},
+  Panel(<span class="hljs-literal">null</span>,
+        div({ style: { backgroundColor: <span class="hljs-string">&apos;tomato&apos;</span> }}, <span class="hljs-string">&apos;Panel1&apos;</span>)),
+  Panel({ shrink: <span class="hljs-literal">true</span> },
+        div({ style: { backgroundColor: <span class="hljs-string">&apos;wheat&apos;</span> }}, <span class="hljs-string">&apos;Panel2&apos;</span>))
+)
+</code></pre>
+<div id="example2" style="margin: 1.5em 0"></div>
+
+<script>
+var Box = React.createFactory(components.Box);
+var Panel = React.createFactory(components.Panel);
+
+React.render(
+  Box(
+    null,
+    Panel(null, React.DOM.div({ style: { backgroundColor: 'tomato' }}, 'Panel1')),
+    Panel(null, React.DOM.div({ style: { backgroundColor: 'skyblue' }}, 'Panel2')),
+    Panel({ size: 50 }, React.DOM.div({ style: { backgroundColor: 'wheat' }}, 'Panel3'))
+  ),
+  document.querySelector('#example1')
+);
+
+React.render(
+  Box(
+    { vertical: true,
+      style: { height: 100 }},
+    Panel(null, React.DOM.div({ style: { backgroundColor: 'tomato' }}, 'Panel1')),
+    Panel({ shrink: true }, React.DOM.div({ style: { backgroundColor: 'wheat' }}, 'Panel2'))
+  ),
+  document.querySelector('#example2')
+);
+</script>
+
+                    
+                    </section>
+                
+                
+                </div>
+            </div>
+        </div>
+
+        
+        <a href="../../../../docs/components.html" class="navigation navigation-prev navigation-unique" aria-label="Previous page: Components"><i class="fa fa-angle-left"></i></a>
+        
+        
+    </div>
+</div>
+
+        
+<script src="../../../../gitbook/app.js"></script>
+
+    
+    <script src="../../../../gitbook/plugins/gitbook-plugin-search/lunr.min.js"></script>
+    
+
+    
+    <script src="../../../../gitbook/plugins/gitbook-plugin-search/search.js"></script>
+    
+
+    
+    <script src="../../../../gitbook/plugins/gitbook-plugin-sharing/buttons.js"></script>
+    
+
+    
+    <script src="../../../../gitbook/plugins/gitbook-plugin-fontsettings/buttons.js"></script>
+    
+
+    
+    <script src="../../../../gitbook/plugins/gitbook-plugin-livereload/plugin.js"></script>
+    
+
+<script>
+require(["gitbook"], function(gitbook) {
+    var config = {"addcssjs":{"js":["docs/static/js/bundle.js","docs/static/js/globals.js"]},"highlight":{},"search":{},"sharing":{"facebook":true,"twitter":true,"google":false,"weibo":false,"instapaper":false,"vk":false,"all":["facebook","google","twitter","weibo","instapaper"]},"fontsettings":{"theme":"white","family":"sans","size":2},"livereload":{}};
+    gitbook.start(config);
+});
+</script>
+
+        
+    </body>
+    
+</html>
