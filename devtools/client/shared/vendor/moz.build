@@ -4,7 +4,7 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-modules = []
+modules = ['load-css.js']
 
 # react-dev is used if either debug mode is enabled,
 # so include it for both

@@ -112,7 +112,8 @@ function BrowserLoader(baseURI, window) {
     exportsHook: (uri, exports, require) => {
       if (AppConstants.DEBUG_JS_MODULES &&
           hotReloadEnabled &&
-          exports.isReactClass) {
+          exports.prototype &&
+          exports.prototype.isReactComponent) {
         const { createProxy, getForceUpdate } =
               require("devtools/client/shared/vendor/react-proxy");
         const React = require("devtools/client/shared/vendor/react");

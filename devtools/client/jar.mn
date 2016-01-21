@@ -65,7 +65,6 @@ devtools.jar:
     content/sourceeditor/codemirror/keymap/vim.js (sourceeditor/codemirror/keymap/vim.js)
     content/sourceeditor/codemirror/mozilla.css (sourceeditor/codemirror/mozilla.css)
     content/debugger/debugger.xul (debugger/debugger.xul)
-    content/debugger/debugger.css (debugger/debugger.css)
     content/debugger/debugger-controller.js (debugger/debugger-controller.js)
     content/debugger/debugger-view.js (debugger/debugger-view.js)
     content/debugger/views/workers-view.js (debugger/views/workers-view.js)

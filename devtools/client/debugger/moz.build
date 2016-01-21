@@ -9,6 +9,7 @@ DIRS += [
 
 DevToolsModules(
     'debugger-commands.js',
+    'debugger.css',
     'panel.js'
 )
 

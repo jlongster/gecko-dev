@@ -291,9 +291,9 @@ var DebuggerController = {
       newSource(packet.source);
 
       // Make sure the events listeners are up to date.
-      if (DebuggerView.instrumentsPaneTab == "events-tab") {
-        fetchEventListeners();
-      }
+      // if (DebuggerView.instrumentsPaneTab == "events-tab") {
+      //   fetchEventListeners();
+      // }
     });
 
     this.Workers.connect();
@@ -840,8 +840,8 @@ StackFrames.prototype = {
     DebuggerView.editor.clearDebugLocation();
     DebuggerView.StackFrames.empty();
     DebuggerView.Sources.unhighlightBreakpoint();
-    DebuggerView.WatchExpressions.toggleContents(true);
-    DebuggerView.Variables.empty(0);
+    // DebuggerView.WatchExpressions.toggleContents(true);
+    // DebuggerView.Variables.empty(0);
 
     window.emit(EVENTS.AFTER_FRAMES_CLEARED);
   },
@@ -883,55 +883,55 @@ StackFrames.prototype = {
     DebuggerView.Sources.highlightBreakpointAtCursor();
 
     // Don't display the watch expressions textbox inputs in the pane.
-    DebuggerView.WatchExpressions.toggleContents(false);
+    // DebuggerView.WatchExpressions.toggleContents(false);
 
     // Start recording any added variables or properties in any scope and
     // clear existing scopes to create each one dynamically.
-    DebuggerView.Variables.empty();
+    // DebuggerView.Variables.empty();
 
     // If watch expressions evaluation results are available, create a scope
     // to contain all the values.
-    if (this._syncedWatchExpressions && aDepth == 0) {
-      let label = L10N.getStr("watchExpressionsScopeLabel");
-      let scope = DebuggerView.Variables.addScope(label);
+    // if (this._syncedWatchExpressions && aDepth == 0) {
+    //   let label = L10N.getStr("watchExpressionsScopeLabel");
+    //   let scope = DebuggerView.Variables.addScope(label);
 
-      // Customize the scope for holding watch expressions evaluations.
-      scope.descriptorTooltip = false;
-      scope.contextMenuId = "debuggerWatchExpressionsContextMenu";
-      scope.separatorStr = L10N.getStr("watchExpressionsSeparatorLabel2");
-      scope.switch = DebuggerView.WatchExpressions.switchExpression;
-      scope.delete = DebuggerView.WatchExpressions.deleteExpression;
+    //   // Customize the scope for holding watch expressions evaluations.
+    //   scope.descriptorTooltip = false;
+    //   scope.contextMenuId = "debuggerWatchExpressionsContextMenu";
+    //   scope.separatorStr = L10N.getStr("watchExpressionsSeparatorLabel2");
+    //   scope.switch = DebuggerView.WatchExpressions.switchExpression;
+    //   scope.delete = DebuggerView.WatchExpressions.deleteExpression;
 
-      // The evaluation hasn't thrown, so fetch and add the returned results.
-      this._fetchWatchExpressions(scope, this._currentEvaluation.return);
+    //   // The evaluation hasn't thrown, so fetch and add the returned results.
+    //   this._fetchWatchExpressions(scope, this._currentEvaluation.return);
 
-      // The watch expressions scope is always automatically expanded.
-      scope.expand();
-    }
+    //   // The watch expressions scope is always automatically expanded.
+    //   scope.expand();
+    // }
 
-    do {
-      // Create a scope to contain all the inspected variables in the
-      // current environment.
-      let label = StackFrameUtils.getScopeLabel(environment);
-      let scope = DebuggerView.Variables.addScope(label);
-      let innermost = environment == frame.environment;
+    // do {
+    //   // Create a scope to contain all the inspected variables in the
+    //   // current environment.
+    //   let label = StackFrameUtils.getScopeLabel(environment);
+    //   let scope = DebuggerView.Variables.addScope(label);
+    //   let innermost = environment == frame.environment;
 
-      // Handle special additions to the innermost scope.
-      if (innermost) {
-        this._insertScopeFrameReferences(scope, frame);
-      }
+    //   // Handle special additions to the innermost scope.
+    //   if (innermost) {
+    //     this._insertScopeFrameReferences(scope, frame);
+    //   }
 
-      // Handle the expansion of the scope, lazily populating it with the
-      // variables in the current environment.
-      DebuggerView.Variables.controller.addExpander(scope, environment);
+    //   // Handle the expansion of the scope, lazily populating it with the
+    //   // variables in the current environment.
+    //   DebuggerView.Variables.controller.addExpander(scope, environment);
 
-      // The innermost scope is always automatically expanded, because it
-      // contains the variables in the current stack frame which are likely to
-      // be inspected. The previously expanded scopes are also reexpanded here.
-      if (innermost || DebuggerView.Variables.wasExpanded(scope)) {
-        scope.expand();
-      }
-    } while ((environment = environment.parent));
+    //   // The innermost scope is always automatically expanded, because it
+    //   // contains the variables in the current stack frame which are likely to
+    //   // be inspected. The previously expanded scopes are also reexpanded here.
+    //   if (innermost || DebuggerView.Variables.wasExpanded(scope)) {
+    //     scope.expand();
+    //   }
+    // } while ((environment = environment.parent));
 
     // Signal that scope environments have been shown.
     window.emit(EVENTS.FETCHED_SCOPES);

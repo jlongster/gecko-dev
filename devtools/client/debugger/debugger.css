@@ -60,10 +60,16 @@
   flex: none;
 }
 
-#redux-devtools * {
-  display: block;
+#instruments-pane {
+    background-color: #d0d0d0;
 }
 
-#redux-devtools span {
-  display: inline
+.accordion ._content {
+    padding: 10px;
+}
+
+ul.breakpoints {
+    margin: 0;
+    padding: 0;
+    list-style: none;
 }

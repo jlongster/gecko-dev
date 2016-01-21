@@ -4,7 +4,6 @@
    - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
 <?xml-stylesheet href="chrome://global/skin/" type="text/css"?>
 <?xml-stylesheet href="chrome://devtools/content/shared/widgets/widgets.css" type="text/css"?>
-<?xml-stylesheet href="debugger.css" type="text/css"?>
 <?xml-stylesheet href="chrome://devtools/skin/common.css" type="text/css"?>
 <?xml-stylesheet href="chrome://devtools/skin/widgets.css" type="text/css"?>
 <?xml-stylesheet href="chrome://devtools/skin/debugger.css" type="text/css"?>
@@ -13,7 +12,6 @@
   %debuggerDTD;
 ]>
 <?xul-overlay href="chrome://global/content/editMenuOverlay.xul"?>
-
 <window xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul"
         xmlns:html="http://www.w3.org/1999/xhtml"
         macanimationtype="document"
@@ -21,6 +19,8 @@
         screenX="4" screenY="4"
         width="960" height="480"
         persist="screenX screenY width height sizemode">
+
+  <html:link rel="stylesheet" type="text/css" href="resource://devtools/client/debugger/debugger.css"></html:link>
 
   <script type="application/javascript;version=1.8"
           src="chrome://devtools/content/shared/theme-switching.js"/>
@@ -393,28 +393,28 @@
           </deck>
           <splitter id="editor-and-instruments-splitter"
                     class="devtools-side-splitter"/>
-          <tabbox id="instruments-pane"
-                  class="devtools-sidebar-tabs"
-                  hidden="true">
-            <tabs>
-              <tab id="variables-tab"
-                   crop="end"
-                   label="&debuggerUI.tabs.variables;"/>
-              <tab id="events-tab"
-                   crop="end"
-                   label="&debuggerUI.tabs.events;"/>
-            </tabs>
-            <tabpanels flex="1">
-              <tabpanel id="variables-tabpanel">
-                <vbox id="expressions"/>
-                <splitter class="devtools-horizontal-splitter"/>
-                <vbox id="variables" flex="1"/>
-              </tabpanel>
-              <tabpanel id="events-tabpanel">
-                <vbox id="event-listeners" flex="1"/>
-              </tabpanel>
-            </tabpanels>
-          </tabbox>
+          <vbox id="instruments-pane"
+                class="devtools-sidebar-tabs"
+                hidden="true">
+            <!-- <tabs> -->
+            <!--   <tab id="variables-tab" -->
+            <!--        crop="end" -->
+            <!--        label="&debuggerUI.tabs.variables;"/> -->
+            <!--   <tab id="events-tab" -->
+            <!--        crop="end" -->
+            <!--        label="&debuggerUI.tabs.events;"/> -->
+            <!-- </tabs> -->
+            <!-- <tabpanels flex="1"> -->
+            <!--   <tabpanel id="variables-tabpanel"> -->
+            <!--     <vbox id="expressions"/> -->
+            <!--     <splitter class="devtools-horizontal-splitter"/> -->
+            <!--     <vbox id="variables" flex="1"/> -->
+            <!--   </tabpanel> -->
+            <!--   <tabpanel id="events-tabpanel"> -->
+            <!--     <vbox id="event-listeners" flex="1"/> -->
+            <!--   </tabpanel> -->
+            <!-- </tabpanels> -->
+          </vbox>
         </hbox>
         <splitter id="editor-and-promise-splitter"
                 class="devtools-horizontal-splitter"/>
@@ -495,6 +495,8 @@
       <textbox id="conditional-breakpoint-panel-textbox"/>
     </vbox>
   </panel>
+
+  <html:div id="redux-devtools"></html:div>
 
   <script type="text/javascript" src="resource://gre/browser/modules/devtools/debugger/mocks.js"/>
   <script type="text/javascript" src="resource://gre/browser/modules/devtools/debugger/mock-init.js"/>

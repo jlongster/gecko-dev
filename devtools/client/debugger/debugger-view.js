@@ -32,6 +32,7 @@ const PROMISE_DEBUGGER_URL =
 
 const EventListenersView = require('./content/views/event-listeners-view');
 const SourcesView = require('./content/views/sources-view');
+const reactEntryPoint = require('./content/react-entry-point.js');
 var actions = Object.assign(
   {},
   require('./content/globalActions'),
@@ -75,13 +76,15 @@ var DebuggerView = {
     this.Workers.initialize();
     this.Sources.initialize();
     this.VariableBubble.initialize();
-    this.WatchExpressions.initialize();
-    this.EventListeners.initialize();
+    // this.WatchExpressions.initialize();
+    // this.EventListeners.initialize();
     this.GlobalSearch.initialize();
-    this._initializeVariablesView();
+    // this._initializeVariablesView();
 
     this._initializeEditor(deferred.resolve);
     this._editorSource = {};
+
+    reactEntryPoint(DebuggerController);
 
     document.title = L10N.getStr("DebuggerWindowTitle");
 
@@ -114,6 +117,10 @@ var DebuggerView = {
     return deferred.promise;
   },
 
+  _initializeReact: function() {
+    ReactDOM.render();
+  },
+
   /**
    * Destroys the debugger view.
    *
@@ -136,8 +143,8 @@ var DebuggerView = {
     this.StackFramesClassicList.destroy();
     this.Sources.destroy();
     this.VariableBubble.destroy();
-    this.WatchExpressions.destroy();
-    this.EventListeners.destroy();
+    // this.WatchExpressions.destroy();
+    // this.EventListeners.destroy();
     this.GlobalSearch.destroy();
     this._destroyPromiseDebugger();
     this._destroyPanes();
@@ -166,7 +173,7 @@ var DebuggerView = {
     this.showProgressBar = this.showProgressBar.bind(this);
 
     this._onTabSelect = this._onInstrumentsPaneTabSelect.bind(this);
-    this._instrumentsPane.tabpanels.addEventListener("select", this._onTabSelect);
+    // this._instrumentsPane.tabpanels.addEventListener("select", this._onTabSelect);
 
     this._collapsePaneString = L10N.getStr("collapsePanes");
     this._expandPaneString = L10N.getStr("expandPanes");
@@ -449,6 +456,10 @@ var DebuggerView = {
   },
 
   renderSourceText: function(source) {
+    if(!source) {
+      return;
+    }
+
     this._renderSourceText(
       source,
       queries.getSourceText(this.controller.getState(), source.actor),
@@ -774,8 +785,8 @@ var DebuggerView = {
     this.GlobalSearch.clearView();
     this.StackFrames.empty();
     this.Sources.empty();
-    this.Variables.empty();
-    this.EventListeners.empty();
+    // this.Variables.empty();
+    // this.EventListeners.empty();
 
     if (this.editor) {
       this.editor.setMode(Editor.modes.text);
